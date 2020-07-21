@@ -2,12 +2,12 @@
 # Container::Buildah::Stage
 # ABSTRACT: object used by Container::Buildah to track a stage of a multi-stage container build
 # by Ian Kluft
-#
-package Container::Buildah::Stage;
 use strict;
 use warnings;
+
+package Container::Buildah::Stage;
+use Modern::Perl qw(2018); # oldest versions of Perl this will run on
 use autodie;
-use Modern::Perl qw(2017); # oldest versions of Perl this will run on
 
 use Carp qw(confess);
 use Cwd;
@@ -17,6 +17,8 @@ use constant MNT_ENV_NAME => "BUILDAHUTIL_MOUNT";
 use constant AUTO_ACCESSORS => qw(commit consumes depends from func mnt name produces user user_home);
 use subs (AUTO_ACCESSORS); # predeclare methods AUTOLOAD will generate if called, so UNIVERSAL->can() knows of them
 
+# instantiate an object
+# this should only be called by Container::Buildah - these objects will be passed to each stage's stage->func()
 sub new {
 	my $class = shift;
 

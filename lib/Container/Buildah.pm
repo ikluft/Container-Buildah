@@ -2,11 +2,12 @@
 # Container::Buildah
 # ABSTRACT: Use 'buildah' to enter namespace of OCI/Docker-compatible container image while building it
 # by Ian Kluft
-package Container::Buildah;
 use strict;
 use warnings;
+
+package Container::Buildah;
+use Modern::Perl qw(2018); # oldest versions of Perl this will run on
 use autodie;
-use Modern::Perl qw(2017); # oldest versions of Perl this will run on
 
 use Carp qw(confess);
 use Exporter;
