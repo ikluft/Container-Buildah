@@ -17,6 +17,19 @@ use constant MNT_ENV_NAME => "BUILDAHUTIL_MOUNT";
 use constant AUTO_ACCESSORS => qw(commit consumes depends from func mnt name produces user user_home);
 use subs (AUTO_ACCESSORS); # predeclare methods AUTOLOAD will generate if called, so UNIVERSAL->can() knows of them
 
+=pod
+
+=head1 NAME
+
+Container::Buildah:Stage - object used by Container::Buildah to track a stage of a multi-stage container build
+
+=head1 DESCRIPTION
+
+B<Container::Buildah:Stage> objects are used by B<Container::Buildah> and passed to the callback function for
+each build-stage container. They contain the configuration information for that stage of the build.
+
+=cut
+
 # instantiate an object
 # this should only be called by Container::Buildah - these objects will be passed to each stage's stage->func()
 sub new {
@@ -62,6 +75,7 @@ sub new {
 
 # return entry from stage configuration subset of Container::Buildah configuation
 # Note: this reads the stage configuration data, not to be confused with buildah's config subcommand
+# public method
 sub stage_config
 {
 	my $self = shift;
@@ -74,7 +88,7 @@ sub stage_config
 
 		# if the value is a scalar, perform variable expansion
 		return Container::Buildah::expand($self->{$key});
-		
+
 	}
 	return;
 }
@@ -134,6 +148,7 @@ sub DESTROY {}
 
 # get container name
 # generate it the first time
+# public method
 sub container_name
 {
 	my $self = shift;
@@ -145,9 +160,64 @@ sub container_name
 	return $self->{container_name};
 }
 
+#
+# buildah subcommand front-end functions
+# Within Container::Buildah::Stage the object has methods for subcommands which take a container name.
+# Each method gets container_name from the object. So it is not passed as a separate parameter.
+#
+# Other more general subcommands are in Container::Buildah class.
+#
+
+# front-end to "buildah add" subcommand
+# usage: $self->add( [{[dest => value]. [chown => mode]},] src, [src, ...] )
+# public method
+sub add
+{
+	my $self = shift;
+	my %params = @_;
+
+	# initialize argument list for buildah-add
+	my @args = qw(--add-history);
+
+	# TODO	
+	confess "unimplemented";
+}
+
+# front-end to "buildah bud" subcommand
+# usage: $self->bud( param => value, ... )
+# public method
+sub bud
+{
+	my $self = shift;
+	my %params = @_;
+
+	# initialize argument list for buildah-bud
+	my @args;
+
+	# TODO	
+	confess "unimplemented";
+}
+
+# front-end to "buildah commit" subcommand
+# usage: $self->commit( [{param => value, ...}], image-name )
+# public method
+sub commit
+{
+	my $self = shift;
+	my %params = @_;
+
+	# initialize argument list for buildah-commit
+	my @args;
+
+	# TODO	
+	confess "unimplemented";
+}
+
+
 # front-end to "buildah config" subcommand
 # usage: $self->config( param => value, ...)
 # Note: this is for the container's configuration, not to be confused with configuration data of this module
+# public method
 sub config
 {
 	my $self = shift;
@@ -156,7 +226,7 @@ sub config
 	# initialize argument list for buildah-config
 	my @args = qw(--add-history);
 
-	# process arguments which take a single string 
+	# process arguments which take a single string
 	foreach my $argname (qw(arch author cmd comment created-by domainname healthcheck healthcheck-interval
 		healthcheck-retries healthcheck-start-period healthcheck-timeout history-comment hostname onbuild
 		os shell stop-signal user workingdir))
@@ -198,7 +268,7 @@ sub config
 			} else {
 				confess "config: parameter 'entrypoint' must be a scalar or array, got "
 					.(ref $params{entrypoint});
-			}			
+			}	
 			delete $params{entrypoint};
 		}
 	}
@@ -213,7 +283,8 @@ sub config
 }
 
 # front-end to "buildah copy" subcommand
-# usage: $self->copy( {[dest => value]}, src, [src, ...] )
+# usage: $self->copy( [{dest => value},] src, [src, ...] )
+# public method
 sub copy
 {
 	my $self = shift;
@@ -230,7 +301,7 @@ sub copy
 	# initialize argument list for buildah-copy
 	my @args = qw(--add-history);
 
-	# process arguments which take a single string 
+	# process arguments which take a single string
 	foreach my $argname (qw(chown)) {
 		if (exists $params->{$argname}) {
 			if (ref $params->{$argname}) {
@@ -251,11 +322,39 @@ sub copy
 	Container::Buildah::buildah("copy", @args, $self->container_name, @paths, ($dest ? ($dest) : ()));
 }
 
+# front-end to "buildah from" subcommand
+# usage: $self->from( [{[dest => value]. [chown => mode]},] src, [src, ...] )
+# public method
+sub from
+{
+	my $self = shift;
+	my %params = @_;
+
+	# initialize argument list for buildah-from
+	my @args = qw(--add-history);
+
+	# TODO	
+	confess "unimplemented";
+}
+
+# front-end to "buildah mount" subcommand
+# usage: $path = $self->mount()
+# public method
+sub mount
+{
+	my $self = shift;
+	my %params = @_;
+
+	# TODO	
+	confess "unimplemented";
+}
+
 # front-end to "buildah run" subcommand
 # usage: $self->run( [{param => value, ...}], [command], ... )
 # Command parameter can be an array of strings for one command, or array of arrays of strings for multiple commands.
 # This applies the same command-line arguments (from %params) to each command. To change parameters for a command,
 # make a separate call to the function.
+# public method
 sub run
 {
 	my $self = shift;
@@ -268,7 +367,7 @@ sub run
 	# initialize argument list for buildah-run
 	my @args = qw(--add-history);
 
-	# process arguments which take a single string 
+	# process arguments which take a single string
 	foreach my $argname (qw(cap-add cap-drop cni-config-dir cni-plugin-path ipc isolation network pid runtime
 		runtime-flag no-pivot user uts))
 	{
@@ -322,7 +421,24 @@ sub run
 	}
 }
 
+# front-end to "buildah umount" subcommand
+# usage: $self->umount()
+# public method
+sub umount
+{
+	my $self = shift;
+	my %params = @_;
+
+	# TODO	
+	confess "unimplemented";
+}
+
+#
+# container-stage processing private methods
+#
+
 # remove a container by name if it already exists - we need the name
+# private method
 sub rmcontainer
 {
 	my $self = shift;
@@ -334,6 +450,7 @@ sub rmcontainer
 
 # derive tarball name for stage which produces it
 # defaults to the current stage
+# private method
 sub tarball
 {
 	my $self = shift;
@@ -343,6 +460,7 @@ sub tarball
 
 # generic external wrapper function for all stages
 # mount the container namespace and enter it to run the custom stage build function
+# private method
 sub launch_namespace
 {
 	my $self = shift;
@@ -396,6 +514,7 @@ sub launch_namespace
 }
 
 # import tarball(s) from other container stages if configured
+# private method
 sub consume
 {
 	my $self = shift;
@@ -408,10 +527,10 @@ sub consume
 		if ($user =~ /:/) {
 			($user_name, $group_name) = split /:/, $user;
 			if ($user_name =~ /=/) {
-				($user_name, $uid) = split /=/, $user_name; 
+				($user_name, $uid) = split /=/, $user_name;
 			}
 			if ($group_name =~ /=/) {
-				($group_name, $gid) = split /=/, $group_name; 
+				($group_name, $gid) = split /=/, $group_name;
 			}
 		}
 		# TODO - make this portable to containers based on other distros
@@ -422,7 +541,7 @@ sub consume
 		my $user_home = $self->get_user_home;
 		$self->run(
 			["/usr/sbin/useradd", ((defined $uid) ? ("--uid=$uid") : ()),
-				((defined $group_name) ? ("--gid=$group_name") : ()), 
+				((defined $group_name) ? ("--gid=$group_name") : ()),
 				((defined $user_home) ? ("--home-dir=$user_home") : ()), $user_name],
 			# TODO - make this portable to containers based on other distros
 			[qw(/sbin/apk del shadow)]
@@ -448,6 +567,7 @@ sub consume
 }
 
 # export tarball for availability to other container stages if configured
+# private method
 sub produce
 {
 	my $self = shift;
