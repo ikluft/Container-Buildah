@@ -7,6 +7,7 @@ use Test::More;
 
 my @classes = qw(
 	Container::Buildah
+	Container::Buildah::Stage
 	);
 plan tests => scalar @classes;
 
