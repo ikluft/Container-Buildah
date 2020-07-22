@@ -179,7 +179,7 @@ sub add
 	# initialize argument list for buildah-add
 	my @args = qw(--add-history);
 
-	# TODO	
+	# TODO
 	confess "unimplemented";
 }
 
@@ -194,7 +194,7 @@ sub bud
 	# initialize argument list for buildah-bud
 	my @args;
 
-	# TODO	
+	# TODO
 	confess "unimplemented";
 }
 
@@ -209,7 +209,7 @@ sub commit
 	# initialize argument list for buildah-commit
 	my @args;
 
-	# TODO	
+	# TODO
 	confess "unimplemented";
 }
 
@@ -268,7 +268,7 @@ sub config
 			} else {
 				confess "config: parameter 'entrypoint' must be a scalar or array, got "
 					.(ref $params{entrypoint});
-			}	
+			}
 			delete $params{entrypoint};
 		}
 	}
@@ -333,7 +333,7 @@ sub from
 	# initialize argument list for buildah-from
 	my @args = qw(--add-history);
 
-	# TODO	
+	# TODO
 	confess "unimplemented";
 }
 
@@ -345,7 +345,7 @@ sub mount
 	my $self = shift;
 	my %params = @_;
 
-	# TODO	
+	# TODO
 	confess "unimplemented";
 }
 
@@ -429,7 +429,7 @@ sub umount
 	my $self = shift;
 	my %params = @_;
 
-	# TODO	
+	# TODO
 	confess "unimplemented";
 }
 
@@ -445,7 +445,7 @@ sub rmcontainer
 
 	Container::Buildah::cmd({name => "rmcontainer", nonzero => sub {},
 		zero => sub {Container::Buildah::buildah("rm", $self->container_name);}},
-		"/usr/bin/buildah inspect ".$self->container_name.' >/dev/null 2>&1');
+		Container::Buildah::prog("buildah")." inspect ".$self->container_name.' >/dev/null 2>&1');
 }
 
 # derive tarball name for stage which produces it
@@ -566,6 +566,16 @@ sub consume
 	}
 }
 
+# drop leading slash from a path
+sub dropslash
+{
+	my $str = shift;
+	if (substr($str,0,1) eq '/') {
+		substr($str,0,1) = '';
+	}
+	return $str;
+}
+
 # export tarball for availability to other container stages if configured
 # private method
 sub produce
@@ -579,7 +589,7 @@ sub produce
 			my $tarball_out = $self->tarball;
 			my @product_dirs;
 			foreach my $product (@$produces) {
-				push @product_dirs, Container::Buildah::dropslash($product);
+				push @product_dirs, dropslash($product);
 			}
 
 			# move any existing tarball to backup

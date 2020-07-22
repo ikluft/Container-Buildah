@@ -132,6 +132,10 @@ sub _new_instance
 	return $self;
 }
 
+#
+# configuration functions
+#
+
 # print debug messages
 sub debug
 {
@@ -160,14 +164,14 @@ sub expand
 
 	# process scalar value
 	my $output;
-	my $util = Container::Buildah->instance();
-	$util->{template}->process(\$value, $util->{config}, \$output);
+	my $cb = Container::Buildah->instance();
+	$cb->{template}->process(\$value, $cb->{config}, \$output);
 	debug "expand: $value -> $output";
 	my $count=0;
 	while ($output =~ /\[%.*%\]/ and $count++ < 10) {
 		$value = $output;
 		$output = ""; # clear because template concatenates to it
-		$util->{template}->process(\$value, $util->{config}, \$output);
+		$cb->{template}->process(\$value, $cb->{config}, \$output);
 		debug "expand ($count): $value -> $output";
 	}
 	return $output;
@@ -236,6 +240,10 @@ sub set_debug
 	$Container::Buildah::debug = shift;
 }
 
+#
+# system access functions
+#
+
 # get path to the executing script
 # used for file dependency checks and re-running in containers
 sub progpath
@@ -268,6 +276,94 @@ sub check_deliverable
 	return;
 }
 
+# generate name of environment variable for where to find a command
+# this is broken out as a separate function for tests to use it
+sub envprog
+{
+	my $progname = shift;
+	my $envprog = (uc $progname)."_PROG";
+	$envprog =~ s/[\W-]+/_/g; # collapse any sequences of non-alphanumeric/non-underscore to a single underscore
+	return $envprog;
+}
+
+# look up secure program path
+## no critic (RequireFinalReturn)
+sub prog
+{
+	my $progname = shift;
+	my $self = Container::Buildah->instance();
+
+	if (!exists $self->{prog}) {
+		$self->{prog} = {};
+	}
+	my $prog = $self->{prog};
+
+	# call with undef to initialize cache (mainly needed for testing because normal use will auto-create it)
+	if (!defined $progname) {
+		return;
+	}
+
+	# return value from cache if found
+	if (exists $prog->{$progname}) {
+		return $prog->{$progname};
+	}
+
+	# if we didn't have the location of the program, look for it and cache the result
+	my $envprog = envprog($progname);
+	if (exists $ENV{$envprog} and -x $ENV{$envprog}) {
+		$prog->{$progname} = $ENV{$envprog};
+		return $prog->{$progname};
+	}
+
+	# search paths in order emphasizing recent Linux Filesystem that prefers /usr/bin, then Unix PATH order
+	for my $path ("/usr/bin", "/sbin", "/usr/sbin", "/bin") {
+		if (-x "$path/$progname") {
+			$prog->{$progname} = "$path/$progname";
+			return $prog->{$progname};
+		}
+	}
+
+	# if we get here, we didn't find a known secure location for the program
+	die "unknown secure location for $progname - install it or set $envprog to point to it";
+}
+## use critic
+
+# get OCI-recognized CPU architecture string for this system
+# includes tweak to add v7 to armv7
+sub get_arch
+{
+	my $buildah_path = prog("buildah");
+	my $arch = qx($buildah_path info --format {{".host.arch"}});
+	if ($? == -1) {
+		die "get_arch: failed to execute: $!";
+	} elsif ($? & 127) {
+		printf STDERR "get_arch: child died with signal %d, %s coredump\n",
+			($? & 127),  ($? & 128) ? 'with' : 'without';
+		exit 1;
+	} elsif ($? >> 8 != 0) {
+		printf STDERR "get_arch: child exited with value %d\n", $? >> 8;
+		exit 1;
+	}
+	if ($arch eq 'arm') {
+	  open(my $cpuinfo_fh, '<', '/proc/cpuinfo')
+		or die "get_arch: can't open /proc/cpuinfo: $!";
+	  while (<$cpuinfo_fh>) {
+		if (/^CPU architecture\s*:\s*(.*)/) {
+			if ($1 eq "7") {
+				$arch='armv7';
+			}
+			last;
+		}
+	  }
+	  close $cpuinfo_fh;
+	}
+	return $arch;
+}
+
+#
+# exception handling
+#
+
 # handle exceptions from eval blocks
 sub exception_handler
 {
@@ -281,27 +377,20 @@ sub exception_handler
 		} else {
 			say STDERR "exception: ".$xc;
 		}
-		my $self = Container::Buildah->instance();
-		open(STDOUT, '>&', $self->{oldstdout});
-		open(STDERR, '>&', $self->{oldstderr});
+		my $cb = Container::Buildah->instance();
+		open(STDOUT, '>&', $cb->{oldstdout});
+		open(STDERR, '>&', $cb->{oldstderr});
 
 		# report status if possible and exit
-		my $util = Container::Buildah->instance();
-		my $basename = $util->{config}{basename} // "unnamed container";
+		my $basename = $cb->{config}{basename} // "unnamed container";
 		say STDERR $basename." failed";
 		exit 1;
 	}
 }
 
-# drop leading slash from a path
-sub dropslash
-{
-	my $str = shift;
-	if (substr($str,0,1) eq '/') {
-		substr($str,0,1) = '';
-	}
-	return $str;
-}
+#
+# external command functions
+#
 
 # run a command and report errors
 sub cmd
@@ -341,9 +430,13 @@ sub buildah
 	my @args = @_;
 
 	debug "buildah: args = ".join(" ", @args);
-	cmd({name => "buildah"}, "/usr/bin/buildah", @args);
+	cmd({name => "buildah"}, prog("buildah"), @args);
 	return;
 }
+
+#
+# build stage management functions
+#
 
 # compute container build order from dependencies
 sub build_order_deps
@@ -452,6 +545,10 @@ sub stage
 	open(STDERR, '>&', $self->{oldstderr});
 }
 
+#
+# process mainline
+#
+
 # process each defined stage of the container production pipeline
 sub main
 {
@@ -464,19 +561,23 @@ sub main
 	}
 
 	# instantiate Container::Buildah object
-	my $yaml_config = $cmd_opts{config};
-	if (not defined $yaml_config) {
-		foreach my $suffix (qw(yml yaml)) {
-			if (-f $Container::Buildah::init_config{basename}.".".$suffix) {
-				$yaml_config = $Container::Buildah::init_config{basename}.".".$suffix;
-				last;
+	my @do_yaml;
+	if (not exists $Container::Buildah::init_config{testing_skip_yaml}) {
+		my $yaml_config = $cmd_opts{config};
+		if (not defined $yaml_config) {
+			foreach my $suffix (qw(yml yaml)) {
+				if (-f $Container::Buildah::init_config{basename}.".".$suffix) {
+					$yaml_config = $Container::Buildah::init_config{basename}.".".$suffix;
+					last;
+				}
+			}
+			if (not defined $yaml_config) {
+				die "YAML configuration required to set software versions";
 			}
 		}
-		if (not defined $yaml_config) {
-			die "YAML configuration required to set software versions";
-		}
+		@do_yaml = (yaml_config => $yaml_config);
 	}
-	my $self = Container::Buildah->instance(yaml_config => $yaml_config, config => \%Container::Buildah::init_config);
+	my $self = Container::Buildah->instance(@do_yaml, config => \%Container::Buildah::init_config);
 
 	# process config
 	$self->{config}{opts} = \%cmd_opts;
@@ -504,37 +605,6 @@ sub main
 		# if we get here, we're done
 		say Container::Buildah->get_config("basename")." complete";
 	}
-}
-
-# get OCI-recognized CPU architecture string for this system
-# includes tweak to add v7 to armv7
-sub get_arch
-{
-	my $arch = qx(/usr/bin/buildah info --format {{".host.arch"}});
-	if ($? == -1) {
-		die "get_arch: failed to execute: $!";
-	} elsif ($? & 127) {
-		printf STDERR "get_arch: child died with signal %d, %s coredump\n",
-			($? & 127),  ($? & 128) ? 'with' : 'without';
-		exit 1;
-	} elsif ($? >> 8 != 0) {
-		printf STDERR "get_arch: child exited with value %d\n", $? >> 8;
-		exit 1;
-	}
-	if ($arch eq 'arm') {
-	  open(my $cpuinfo_fh, '<', '/proc/cpuinfo')
-		or die "get_arch: can't open /proc/cpuinfo: $!";
-	  while (<$cpuinfo_fh>) {
-		if (/^CPU architecture\s*:\s*(.*)/) {
-			if ($1 eq "7") {
-				$arch='armv7';
-			}
-			last;
-		}
-	  }
-	  close $cpuinfo_fh;
-	}
-	return $arch;
 }
 
 1;
