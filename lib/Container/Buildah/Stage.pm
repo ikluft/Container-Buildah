@@ -25,8 +25,18 @@ Container::Buildah:Stage - object used by Container::Buildah to track a stage of
 
 =head1 DESCRIPTION
 
-B<Container::Buildah:Stage> objects are used by B<Container::Buildah> and passed to the callback function for
-each build-stage container. They contain the configuration information for that stage of the build.
+B<Container::Buildah:Stage> objects are created and used by B<Container::Buildah>.
+These are passed to the callback function for each build-stage container.
+
+The class contains methods which are wrappers for the buildah subcommands that require a container name parameter
+on the command line.
+However, the container name is within the object.
+So it is not passed as a separate parameter to these methods.
+
+Each instance contains the configuration information for that stage of the build.
+
+B<Container::Buildah::Stage> automatically adds the I<--add-history> option so that each action will be recorded
+as part of the OCI container build history.
 
 =cut
 
@@ -174,28 +184,38 @@ sub container_name
 sub add
 {
 	my $self = shift;
-	my %params = @_;
+	my $params = {};
+	if (ref $_[0] eq "HASH") {
+		$params = shift;
+	}
+	my @paths = @_;
+
+	# get special parameter dest if it exists
+	my $dest = $params->{dest};
+	delete $params->{dest};
 
 	# initialize argument list for buildah-add
 	my @args = qw(--add-history);
 
-	# TODO
-	confess "unimplemented";
-}
+	# process arguments which take a single string
+	foreach my $argname (qw(chown)) {
+		if (exists $params->{$argname}) {
+			if (ref $params->{$argname}) {
+				confess "add parameter '".$argname."' must be a scalar, got "
+					.(ref $params->{$argname});
+			}
+			push @args, "--$argname", $params->{$argname};
+			delete $params->{$argname};
+		}
+	}
 
-# front-end to "buildah bud" subcommand
-# usage: $self->bud( param => value, ... )
-# public method
-sub bud
-{
-	my $self = shift;
-	my %params = @_;
+	# error out if any unexpected parameters remain
+	if (%$params) {
+		confess "add received undefined parameters '".(join(" ", keys %$params));
+	}
 
-	# initialize argument list for buildah-bud
-	my @args;
-
-	# TODO
-	confess "unimplemented";
+	# run command
+	Container::Buildah::buildah("add", @args, $self->container_name, @paths, ($dest ? ($dest) : ()));
 }
 
 # front-end to "buildah commit" subcommand
@@ -434,7 +454,7 @@ sub umount
 }
 
 #
-# container-stage processing private methods
+# private methods - container-stage processing utilities
 #
 
 # remove a container by name if it already exists - we need the name

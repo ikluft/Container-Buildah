@@ -37,13 +37,19 @@ Container::Buildah - Use 'buildah' to enter namespace of OCI/Docker-compatible c
 B<Container::Buildah> allows Perl scripts to build OCI/Docker-compatible container images using the Open Source
 I<buildah> command. Containers may be pipelined so the product of a build stage is consumed by one or more others.
 
-The user of the B<Container::Buildah> module configures container build stages including a reference to a
-callback function which will run inside the user namespace of the container in ordetr to build it.
-The function is analagous to a Dockerfile, except that it's fully programmable as Perl code.
+The B<Container::Buildah> module grew out of a wrapper script to run code inside the user namespace of a
+container under construction. That remains the core of its purpose. It simplifies rootless builds of containers.
+
+B<Container::Buildah> may be used to write a script to configure container build stages.
+The configuration of each build stage contains a reference to a callback function which will run inside the
+user namespace of the container in order to build it.
+The function is analagous to a Dockerfile, except that it's programmable with access to computation and the system.
 
 The I<buildah> command has subcommands equivalent to Dockerfile directives.
-B<Container::Buildah> automatically adds the I<--add-history> option so that each action will be recorded
-as part of the OCI container build history.
+For each stage of a container build, B<Container::Buildah> creates a B<Container::Buildah::Stage> object
+and passes it to the callback function for that stage.
+There are wrapper methods in B<Container::Buildah::Stage> for
+subcommands of buildah which take a container name as a parameter
 
 =cut
 
