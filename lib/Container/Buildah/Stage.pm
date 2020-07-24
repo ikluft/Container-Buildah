@@ -578,7 +578,7 @@ sub consume
 				my $tarball_in = $self->tarball($in_stage);
 				Container::Buildah::debug "in ".$self->get_name." stage before untar; pid=$$ cwd=$cwd tarball=$tarball_in";
 				(-f $tarball_in) or die "consume(".join(" ", @in_stages)."): ".$tarball_in." not found";
-				Container::Buildah::buildah("add", "--add-history", $self->container_name, $tarball_in, "/");
+				$self->add({dest => "/"}, $tarball_in);
 			}
 		} else {
 			die "consume stage->consumes was set but not an array ref";
