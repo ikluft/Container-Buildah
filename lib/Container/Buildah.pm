@@ -250,7 +250,7 @@ sub set_debug
 }
 
 #
-# system access functions
+# system access utility functions
 #
 
 # get path to the executing script
@@ -441,6 +441,56 @@ sub buildah
 	debug "buildah: args = ".join(" ", @args);
 	cmd({name => "buildah"}, prog("buildah"), @args);
 	return;
+}
+
+#
+# buildah subcommand wrapper methods
+# for subcommands which do not have a container name parameter (those are in Container::Buildah::Stage)
+#
+
+# TODO list for wrapper functions
+# - bud
+# - containers
+# - images
+# - info
+# - inspect (for image or container)
+# - manifest-* later
+# - mount (for image or container)
+# - pull
+# - push
+# - rename
+# - rm
+# - rmi
+# ✓ tag
+# - umount (for image or container)
+# - unshare
+# - version
+
+# front end to "buildah tag: subcommand
+# usage: $cb->tag({image => "image_name"}, new_name, ...)
+# public method
+sub tag
+{
+	my $class_or_obj = shift;
+	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $_[0] eq "HASH") {
+		$params = shift;
+	}
+	my @tags = @_;
+
+	# get image name parameter
+	my $image = $params->{image}
+		or die "tag: image paramater required";
+	delete $params->{image};
+
+	# error out if any unexpected parameters remain
+	if (%$params) {
+		confess "tag received undefined parameters '".(join(" ", keys %$params));
+	}
+
+	# run buildah-tag
+	buildah("tag", $image, @tags);
 }
 
 #

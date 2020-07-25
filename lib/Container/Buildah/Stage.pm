@@ -15,7 +15,9 @@ use Container::Buildah;
 
 use constant MNT_ENV_NAME => "BUILDAHUTIL_MOUNT";
 use constant AUTO_ACCESSORS => qw(commit consumes depends from func mnt name produces user user_home);
-use subs (AUTO_ACCESSORS); # predeclare methods AUTOLOAD will generate if called, so UNIVERSAL->can() knows of them
+
+# predeclare methods AUTOLOAD will generate if called, so UNIVERSAL->can() knows of them
+use subs (AUTO_ACCESSORS);
 
 =pod
 
@@ -236,13 +238,48 @@ sub add
 sub commit
 {
 	my $self = shift;
-	my %params = @_;
+	my $params = {};
+	if (ref $_[0] eq "HASH") {
+		$params = shift;
+	}
+	my $image_name = shift;
 
 	# initialize argument list for buildah-commit
 	my @args;
 
-	# TODO
-	confess "unimplemented";
+	# process arguments which are boolean flags, excluding those requiring true/false as a string
+	foreach my $argname (qw(disable-compression quiet rm squash))
+	{
+		if (exists $params->{$argname}) {
+			if (ref $params->{$argname}) {
+				confess "commit parameter '".$argname."' must be a scalar, got "
+					.(ref $params->{$argname});
+			}
+			push @args, "--$argname", $params->{$argname};
+			delete $params->{$argname};
+		}
+	}
+
+	# process arguments which take a single string, including those requiring true/false as a string
+	foreach my $argname (qw(authfile cert-dir creds format iidfile sign-by  tls-verify omit-timestamp))
+	{
+		if (exists $params->{$argname}) {
+			if (ref $params->{$argname}) {
+				confess "commit parameter '".$argname."' must be a scalar, got "
+					.(ref $params->{$argname});
+			}
+			push @args, "--$argname", $params->{$argname};
+			delete $params->{$argname};
+		}
+	}
+
+	# error out if any unexpected parameters remain
+	if (%$params) {
+		confess "commit received undefined parameters '".(join(" ", keys %$params));
+	}
+
+	# do commit
+	Container::Buildah::buildah("commit", @args, $self->container_name, $image_name);
 }
 
 
@@ -504,14 +541,15 @@ sub launch_namespace
 		my $tarball_out = $self->tarball;
 
 		# check if deliverable tarball file already exists
-		if (my $status = Container::Buildah::check_deliverable($tarball_out)) {
-			# set to build if the program has been updated more recently that the tarball result
-			say STDERR "build tarball ($status): $tarball_out";
-		} else {
+		my $status = Container::Buildah::check_deliverable($tarball_out);
+		if (not $status) {
 			# skip this stage because the deliverable already exists and is up-to-date
 			say STDERR "build tarball skipped - deliverable up-to-date $tarball_out";
 			return;
 		}
+
+		# continue with this build stage if tarball missing or program updated more recently than tarball
+		say STDERR "build tarball ($status): $tarball_out";
 	}
 
 	#
@@ -527,22 +565,25 @@ sub launch_namespace
 	Container::Buildah::buildah("from", "--name=".$self->container_name, $self->get_from);
 
 	# run the builder script in the container
-	Container::Buildah::buildah("unshare", "--mount", MNT_ENV_NAME."=".$self->container_name, Container::Buildah::progpath(),
-		"--internal=".$self->get_name, ($Container::Buildah::debug ? "--debug" : ()));
+	Container::Buildah::buildah("unshare", "--mount", MNT_ENV_NAME."=".$self->container_name,
+		Container::Buildah::progpath(), "--internal=".$self->get_name, ($Container::Buildah::debug ? "--debug" : ()));
 
 	# commit the container if configured
 	my $commit = $self->get_commit;
+	my @tags;
 	if (defined $commit) {
 		if (not ref $commit) {
-			Container::Buildah::buildah("commit", $self->container_name, $commit);
+			@tags = ($commit);
 		} elsif (ref $commit eq "ARRAY") {
-			foreach my $commit_tag (@$commit) {
-				Container::Buildah::buildah("commit", $self->container_name, $commit_tag);
-			}
+			@tags = @$commit;
 		} else {
 			confess "reference to ".(ref $commit)." not supported in commit - use scalar or array";
 		}
 	}
+	my $image_name = shift @tags;
+	$self->commit($image_name);
+	my $cb = Container::Buildah->instance();
+	$cb->tag({image => $image_name}, @tags);
 }
 
 # import tarball(s) from other container stages if configured
