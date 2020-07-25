@@ -108,7 +108,11 @@ sub debug
 {
 	my $self = shift;
 	my $cb = Container::Buildah->instance();
-	$cb->debug('['.$self->container_name().']', @_);
+	my @label;
+	if (exists $self->{config}{container_name}) {
+		@label = ('['.$self->container_name().']');
+	}
+	$cb->debug(@label, @_);
 }
 
 # accessors - commented out but retained to show why AUTOLOAD was needed to generate accessor functions
