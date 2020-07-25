@@ -147,7 +147,7 @@ sub debug
 {
 	if ($Container::Buildah::debug) {
 		# get Container::Buildah ref from method-call parameter or class singleton instance
-		my $cb = ((ref $_[0]) and (ref $_[0] eq "Container::Buildah") ? shift : Container::Buildah->instance());
+		my $cb = ((ref $_[0]) and (ref $_[0] eq "Container::Buildah")) ? shift : Container::Buildah->instance();
 
 		# print debug message
 		say STDERR "debug: ".join(" ", @_);
