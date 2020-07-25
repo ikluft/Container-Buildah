@@ -139,17 +139,20 @@ sub _new_instance
 }
 
 #
-# configuration functions
+# configuration/utility functions
 #
 
 # print debug messages
 sub debug
 {
 	if ($Container::Buildah::debug) {
+		# get Container::Buildah ref from method-call parameter or class singleton instance
+		my $cb = ((ref $_[0]) and (ref $_[0] eq "Container::Buildah") ? shift : Container::Buildah->instance());
+
+		# print debug message
 		say STDERR "debug: ".join(" ", @_);
-		my $self = Container::Buildah->instance();
-		if ($self->{oldstderr}->fileno != fileno(STDERR)) {
-			$self->{oldstderr}->print("debug: ".join(" ", @_)."\n");
+		if ((exists $cb->{oldstderr}) and ($cb->{oldstderr}->fileno != fileno(STDERR))) {
+			$cb->{oldstderr}->print("debug: ".join(" ", @_)."\n");
 		}
 	}
 }
@@ -499,6 +502,7 @@ sub stage
 	my $is_internal = (exists $opt{internal}) ? $opt{internal} : 0;
 
 	# instantiate the Container::Buildah::Stage object for this stage's container
+	require Container::Buildah::Stage;
 	my $stage = Container::Buildah::Stage->new(name => $name);
 
 	# create timestamped log directory if it doesn't exist
