@@ -1,6 +1,25 @@
 Change log for Container::Buildah
 
 {{$NEXT}}
+[API CHANGE]
+
+[BUG FIXES]
+
+[DOCS]
+add POD docs
+
+[ENHANCEMENTS]
+
+[MAJOR]
+
+[MINOR]
+code cleanup for Perl::Critic compliance at severity 3 (harsh) level
+implement buildah subcommand wrapper functions
+
+[REVISION]
+
+[SECURITY]
+
 
 0.1.0 - 2020-07-17
 	- preparation for posting to GitHub and CPAN

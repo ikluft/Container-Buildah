@@ -1,14 +1,14 @@
-#!/usr/bin/perl
 # Container::Buildah
 # ABSTRACT: Use 'buildah' to enter namespace of OCI/Docker-compatible container image while building it
 # by Ian Kluft
-use strict;
-use warnings;
+
+## no critic (Modules::RequireExplicitPackage)
+# use strict and warnings included here
+use Modern::Perl qw(2018); # require 5.26 security update
+## use critic (Modules::RequireExplicitPackage)
 
 package Container::Buildah;
-use Modern::Perl qw(2018); # oldest versions of Perl this will run on
 use autodie;
-
 use Carp qw(croak confess);
 use Exporter;
 use Getopt::Long;
@@ -22,36 +22,7 @@ use Algorithm::Dependency::Source::HoA;
 use YAML::XS;
 use Template;
 
-our $VERSION = '0.1.0';
-
 use parent qw(Class::Singleton Exporter);
-
-=pod
-
-=head1 NAME
-
-Container::Buildah - Use 'buildah' to enter namespace of OCI/Docker-compatible container image while building it
-
-=head1 DESCRIPTION
-
-B<Container::Buildah> allows Perl scripts to build OCI/Docker-compatible container images using the Open Source
-I<buildah> command. Containers may be pipelined so the product of a build stage is consumed by one or more others.
-
-The B<Container::Buildah> module grew out of a wrapper script to run code inside the user namespace of a
-container under construction. That remains the core of its purpose. It simplifies rootless builds of containers.
-
-B<Container::Buildah> may be used to write a script to configure container build stages.
-The configuration of each build stage contains a reference to a callback function which will run inside the
-user namespace of the container in order to build it.
-The function is analagous to a Dockerfile, except that it's programmable with access to computation and the system.
-
-The I<buildah> command has subcommands equivalent to Dockerfile directives.
-For each stage of a container build, B<Container::Buildah> creates a B<Container::Buildah::Stage> object
-and passes it to the callback function for that stage.
-There are wrapper methods in B<Container::Buildah::Stage> for
-subcommands of buildah which take a container name as a parameter
-
-=cut
 
 #
 # initialize environment
@@ -139,7 +110,7 @@ sub _new_instance
 
 	return $self;
 }
-## critic (Subroutines::ProhibitUnusedPrivateSubroutines, Miscellanea::ProhibitUnrestrictedNoCritic))
+## use critic (Subroutines::ProhibitUnusedPrivateSubroutines, Miscellanea::ProhibitUnrestrictedNoCritic))
 
 #
 # configuration/utility functions
@@ -697,3 +668,58 @@ sub main
 
 1;
 
+__END__
+
+=pod
+
+=head1 SYNOPSIS
+ 
+    use <Container::Buildah>;
+	Container::Buildah::init_config(
+		basename => "swpkg",
+		base_image => 'docker://docker.io/alpine:[% alpine_version %]',
+		stages => {
+			build => {
+				from => "[% base_image %]",
+				func => \&stage_build,
+				produces => [qw(/opt/swpkg-apk)],
+			},
+			runtime => {
+				from => "[% base_image %]",
+				consumes => [qw(build)],
+				func => \&stage_runtime,
+				commit => ["[% basename %]:[% swpkg_version %]", "[% basename %]:latest"],
+			}
+		},
+		swpkg_version => "9.16.4",
+	);
+	sub stage_build {
+		# code to run inside the namespace of the build container
+		# set up build container and copy newly-built Alpine APK packages into /opt/swpkg-apk ...
+	}
+	sub stage_runtime {
+		# code to run inside the namespace of the runtime container
+		# set up runtime container including installing Alpine APK packages from /opt/swpkg-apk ...
+	}
+	Container::Buildah::main(); # run all the container stages
+  
+=head1 DESCRIPTION
+
+B<Container::Buildah> allows Perl scripts to build OCI/Docker-compatible container images using the Open Source
+I<buildah> command. Containers may be pipelined so the product of a build stage is consumed by one or more others.
+
+The B<Container::Buildah> module grew out of a wrapper script to run code inside the user namespace of a
+container under construction. That remains the core of its purpose. It simplifies rootless builds of containers.
+
+B<Container::Buildah> may be used to write a script to configure container build stages.
+The configuration of each build stage contains a reference to a callback function which will run inside the
+user namespace of the container in order to build it.
+The function is analagous to a Dockerfile, except that it's programmable with access to computation and the system.
+
+The I<buildah> command has subcommands equivalent to Dockerfile directives.
+For each stage of a container build, B<Container::Buildah> creates a B<Container::Buildah::Stage> object
+and passes it to the callback function for that stage.
+There are wrapper methods in B<Container::Buildah::Stage> for
+subcommands of buildah which take a container name as a parameter
+
+=cut

@@ -1,14 +1,14 @@
-#!/usr/bin/perl
 # Container::Buildah::Stage
 # ABSTRACT: object used by Container::Buildah to track a stage of a multi-stage container build
 # by Ian Kluft
-use strict;
-use warnings;
+
+## no critic (Modules::RequireExplicitPackage)
+# use strict and warnings included here
+use Modern::Perl qw(2018); # require 5.26 security update
+## use critic (Modules::RequireExplicitPackage)
 
 package Container::Buildah::Stage;
-use Modern::Perl qw(2018); # oldest versions of Perl this will run on
 use autodie;
-
 use Carp qw(croak confess);
 use Cwd;
 use Readonly;
@@ -20,29 +20,6 @@ my $accessors_created = 0;
 
 # predeclare methods that will be auto-generated, so UNIVERSAL->can() knows of them
 use subs (grep {"get_".$_} @auto_accessors); # prepend get_ on read accessors
-
-=pod
-
-=head1 NAME
-
-Container::Buildah:Stage - object used by Container::Buildah to track a stage of a multi-stage container build
-
-=head1 DESCRIPTION
-
-B<Container::Buildah:Stage> objects are created and used by B<Container::Buildah>.
-These are passed to the callback function for each build-stage container.
-
-The class contains methods which are wrappers for the buildah subcommands that require a container name parameter
-on the command line.
-However, the container name is within the object.
-So it is not passed as a separate parameter to these methods.
-
-Each instance contains the configuration information for that stage of the build.
-
-B<Container::Buildah::Stage> automatically adds the I<--add-history> option so that each action will be recorded
-as part of the OCI container build history.
-
-=cut
 
 # instantiate an object
 # this should only be called by Container::Buildah - these objects will be passed to each stage's stage->func()
@@ -688,3 +665,23 @@ sub produce
 
 1;
 
+__END__
+
+=pod
+
+=head1 DESCRIPTION
+
+B<Container::Buildah:Stage> objects are created and used by B<Container::Buildah>.
+These are passed to the callback function for each build-stage container.
+
+The class contains methods which are wrappers for the buildah subcommands that require a container name parameter
+on the command line.
+However, the container name is within the object.
+So it is not passed as a separate parameter to these methods.
+
+Each instance contains the configuration information for that stage of the build.
+
+B<Container::Buildah::Stage> automatically adds the I<--add-history> option so that each action will be recorded
+as part of the OCI container build history.
+
+=cut
