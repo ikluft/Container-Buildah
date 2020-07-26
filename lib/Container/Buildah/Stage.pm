@@ -11,13 +11,14 @@ use autodie;
 
 use Carp qw(confess);
 use Cwd;
+use Readonly;
 use Container::Buildah;
 
-use constant MNT_ENV_NAME => "BUILDAHUTIL_MOUNT";
-use constant AUTO_ACCESSORS => qw(commit consumes depends from func mnt name produces user user_home);
+Readonly::Scalar my $mnt_env_name => "BUILDAHUTIL_MOUNT";
+Readonly::Array my @auto_accessors => qw(commit consumes depends from func mnt name produces user user_home);
 
 # predeclare methods AUTOLOAD will generate if called, so UNIVERSAL->can() knows of them
-use subs (AUTO_ACCESSORS);
+use subs (@auto_accessors);
 
 =pod
 
@@ -45,9 +46,9 @@ as part of the OCI container build history.
 # instantiate an object
 # this should only be called by Container::Buildah - these objects will be passed to each stage's stage->func()
 sub new {
-	my $class = shift;
+	my ($class, @in_args) = @_;
 
-	my $self = { @_ };
+	my $self = { @in_args };
 	bless $self, $class;
 
 	# check for required name parameter
@@ -56,8 +57,8 @@ sub new {
 	}
 
 	# get container mount point, if in the user namespace
-	if (exists $ENV{MNT_ENV_NAME()}) {
-		$self->{mnt} = $ENV{MNT_ENV_NAME()};
+	if (exists $ENV{$mnt_env_name}) {
+		$self->{mnt} = $ENV{$mnt_env_name};
 	}
 
 	# get ref to stage configuation
@@ -108,13 +109,14 @@ sub stage_config
 # debug method forward to Container::Buildah::debug()
 sub debug
 {
-	my $self = shift;
+	my ($self, @in_args) = @_;
 	my $cb = Container::Buildah->instance();
 	my @label;
 	if (exists $self->{config}{container_name}) {
 		@label = ('['.$self->container_name().']');
 	}
-	$cb->debug(@label, @_);
+	$cb->debug(@label, @in_args);
+	return;
 }
 
 # accessors - commented out but retained to show why AUTOLOAD was needed to generate accessor functions
@@ -140,7 +142,7 @@ sub AUTOLOAD
 	}
 	my $field_name = substr($name,4);
 	my $field_ok = 0;
-	foreach my $method_name (AUTO_ACCESSORS) {
+	foreach my $method_name (@auto_accessors) {
 		if ($name eq "get_".$method_name) {
 			$field_ok = 1;
 			last;
@@ -197,12 +199,11 @@ sub container_name
 # public method
 sub add
 {
-	my $self = shift;
+	my ($self, @paths) = @_;
 	my $params = {};
-	if (ref $_[0] eq "HASH") {
-		$params = shift;
+	if (ref $paths[0] eq "HASH") {
+		$params = shift @paths;
 	}
-	my @paths = @_;
 
 	# get special parameter dest if it exists
 	my $dest = $params->{dest};
@@ -230,6 +231,7 @@ sub add
 
 	# run command
 	Container::Buildah::buildah("add", @args, $self->container_name, @paths, ($dest ? ($dest) : ()));
+	return;
 }
 
 # front-end to "buildah commit" subcommand
@@ -237,12 +239,12 @@ sub add
 # public method
 sub commit
 {
-	my $self = shift;
+	my ($self, @in_args) = @_;
 	my $params = {};
-	if (ref $_[0] eq "HASH") {
-		$params = shift;
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
 	}
-	my $image_name = shift;
+	my $image_name = shift @in_args;
 
 	# initialize argument list for buildah-commit
 	my @args;
@@ -280,6 +282,7 @@ sub commit
 
 	# do commit
 	Container::Buildah::buildah("commit", @args, $self->container_name, $image_name);
+	return;
 }
 
 
@@ -289,8 +292,7 @@ sub commit
 # public method
 sub config
 {
-	my $self = shift;
-	my %params = @_;
+	my ($self, %params) = @_;
 
 	# initialize argument list for buildah-config
 	my @args = qw(--add-history);
@@ -349,6 +351,7 @@ sub config
 
 	# run command
 	Container::Buildah::buildah("config", @args, $self->container_name);
+	return;
 }
 
 # front-end to "buildah copy" subcommand
@@ -356,12 +359,11 @@ sub config
 # public method
 sub copy
 {
-	my $self = shift;
+	my ($self, @paths) = @_;
 	my $params = {};
-	if (ref $_[0] eq "HASH") {
-		$params = shift;
+	if (ref $paths[0] eq "HASH") {
+		$params = shift @paths;
 	}
-	my @paths = @_;
 
 	# get special parameter dest if it exists
 	my $dest = $params->{dest};
@@ -389,6 +391,7 @@ sub copy
 
 	# run command
 	Container::Buildah::buildah("copy", @args, $self->container_name, @paths, ($dest ? ($dest) : ()));
+	return;
 }
 
 # front-end to "buildah from" subcommand
@@ -396,8 +399,7 @@ sub copy
 # public method
 sub from
 {
-	my $self = shift;
-	my %params = @_;
+	my ($self, %params) = @_;
 
 	# initialize argument list for buildah-from
 	my @args = qw(--add-history);
@@ -411,8 +413,7 @@ sub from
 # public method
 sub mount
 {
-	my $self = shift;
-	my %params = @_;
+	my ($self, %params) = @_;
 
 	# TODO
 	confess "unimplemented";
@@ -426,12 +427,11 @@ sub mount
 # public method
 sub run
 {
-	my $self = shift;
+	my ($self, @commands) = @_;
 	my $params = {};
-	if (ref $_[0] eq "HASH") {
-		$params = shift;
+	if (ref $commands[0] eq "HASH") {
+		$params = shift @commands;
 	}
-	my @commands = @_;
 
 	# initialize argument list for buildah-run
 	my @args = qw(--add-history);
@@ -488,6 +488,7 @@ sub run
 		# run command
 		Container::Buildah::buildah("run", @args, $self->container_name, '--', @$command);
 	}
+	return;
 }
 
 # front-end to "buildah umount" subcommand
@@ -495,8 +496,7 @@ sub run
 # public method
 sub umount
 {
-	my $self = shift;
-	my %params = @_;
+	my ($self, %params) = @_;
 
 	# TODO
 	confess "unimplemented";
@@ -515,6 +515,7 @@ sub rmcontainer
 	Container::Buildah::cmd({name => "rmcontainer", nonzero => sub {},
 		zero => sub {Container::Buildah::buildah("rm", $self->container_name);}},
 		Container::Buildah::prog("buildah")." inspect ".$self->container_name.' >/dev/null 2>&1');
+	return;
 }
 
 # derive tarball name for stage which produces it
@@ -565,7 +566,7 @@ sub launch_namespace
 	Container::Buildah::buildah("from", "--name=".$self->container_name, $self->get_from);
 
 	# run the builder script in the container
-	Container::Buildah::buildah("unshare", "--mount", MNT_ENV_NAME."=".$self->container_name,
+	Container::Buildah::buildah("unshare", "--mount", $mnt_env_name."=".$self->container_name,
 		Container::Buildah::progpath(), "--internal=".$self->get_name, ($Container::Buildah::debug ? "--debug" : ()));
 
 	# commit the container if configured
@@ -584,6 +585,7 @@ sub launch_namespace
 	$self->commit($image_name);
 	my $cb = Container::Buildah->instance();
 	$cb->tag({image => $image_name}, @tags);
+	return;
 }
 
 # import tarball(s) from other container stages if configured
@@ -637,6 +639,7 @@ sub consume
 			die "consume stage->consumes was set but not an array ref";
 		}
 	}
+	return;
 }
 
 # drop leading slash from a path
@@ -682,6 +685,7 @@ sub produce
 			die "product: stage->consumes was set but not an array ref";
 		}
 	}
+	return;
 }
 
 1;

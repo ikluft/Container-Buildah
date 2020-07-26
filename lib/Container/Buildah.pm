@@ -76,9 +76,8 @@ $Container::Buildah::init_config = {};
 # see parent Class::Singleton
 sub _new_instance
 {
-	my $class = shift;
+	my ($class, %params) = @_;
 	my $self  = bless { }, $class;
-	my %params = @_;
 
 	if (exists $params{debug}) { print STDERR "debug: _new_instance: params=".Dumper(\%params); }
 
@@ -119,7 +118,7 @@ sub _new_instance
 			$self->{config}{timestamp_str} = sprintf "%04d-%02d-%02d-%02d-%02d-%02d",
 				$timestamp[5], $timestamp[4], $timestamp[3],
 				$timestamp[2], $timestamp[1],$timestamp[0];
-			$ENV{$timestamp_envname} = $self->{config}{timestamp_str};
+			$ENV{$timestamp_envname} = $self->{config}{timestamp_str}; ## no critic Variables::RequireLocalizedPunctuationVars
 		}
 	} else {
 		die __PACKAGE__.": required basename initialization parameter not found";
@@ -147,14 +146,17 @@ sub debug
 {
 	if ($Container::Buildah::debug) {
 		# get Container::Buildah ref from method-call parameter or class singleton instance
-		my $cb = ((ref $_[0]) and (ref $_[0] eq "Container::Buildah")) ? shift : Container::Buildah->instance();
+		my @in_args = @_;
+		my $cb = ((ref $in_args[0]) and (ref $in_args[0] eq "Container::Buildah")) ? shift @in_args
+			: Container::Buildah->instance();
 
 		# print debug message
-		say STDERR "debug: ".join(" ", @_);
+		say STDERR "debug: ".join(" ", @in_args);
 		if ((exists $cb->{oldstderr}) and ($cb->{oldstderr}->fileno != fileno(STDERR))) {
-			$cb->{oldstderr}->print("debug: ".join(" ", @_)."\n");
+			$cb->{oldstderr}->print("debug: ".join(" ", @in_args)."\n");
 		}
 	}
+	return;
 }
 
 # template and variable expansion
@@ -189,9 +191,8 @@ sub expand
 # get configuration value
 sub get_config
 {
-	my $class_or_obj = shift;
+	my ($class_or_obj, @path) = @_;
 	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
-	my @path = @_;
 
 	# special case for empty path: return config tree root
 	if (not @path) {
@@ -226,12 +227,12 @@ sub get_config
 # allow caller to enforce its required configuration
 sub required_config
 {
-	my $class_or_obj = shift;
+	my ($class_or_obj, @in_args) = @_;
 	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 
 	# check for missing config parameters required by program
 	my @missing;
-	foreach my $key (@_) {
+	foreach my $key (@in_args) {
 		if (not exists $self->{config}{$key}) {
 			push @missing, $key;
 		}
@@ -247,6 +248,7 @@ sub required_config
 sub set_debug
 {
 	$Container::Buildah::debug = shift;
+	return;
 }
 
 #
@@ -354,6 +356,7 @@ sub get_arch
 		exit 1;
 	}
 	if ($arch eq 'arm') {
+	  ## no critic InputOutput::RequireBriefOpen
 	  open(my $cpuinfo_fh, '<', '/proc/cpuinfo')
 		or die "get_arch: can't open /proc/cpuinfo: $!";
 	  while (<$cpuinfo_fh>) {
@@ -404,24 +407,23 @@ sub exception_handler
 # run a command and report errors
 sub cmd
 {
-	no autodie;
-	my $opts = shift;
-	my @args = @_;
+	my ($opts, @in_args) = @_;
 	my $name = (exists $opts->{name}) ? $opts->{name} : "cmd";
+	no autodie;
 
 	eval {
-		debug "cmd $name ".join(" ", @args);
-		system(@args);
+		debug "cmd $name ".join(" ", @in_args);
+		system(@in_args);
 		if ($? == -1) {
-			confess "failed to execute command (".join(" ", @args)."): $!";
+			confess "failed to execute command (".join(" ", @in_args)."): $!";
 		} elsif ($? & 127) {
-			confess sprintf "command (".join(" ", @args)." child died with signal %d, %s coredump\n",
+			confess sprintf "command (".join(" ", @in_args)." child died with signal %d, %s coredump\n",
 				($? & 127),  ($? & 128) ? 'with' : 'without';
 		} elsif ($? >> 8 != 0) {
 			if (exists $opts->{nonzero} and ref $opts->{nonzero} eq "CODE") {
 				&{$opts->{nonzero}}($? >> 8);
 			} else {
-				confess "non-zero status (".($? >> 8).") from cmd ".join(" ", @args);
+				confess "non-zero status (".($? >> 8).") from cmd ".join(" ", @in_args);
 			}
 		} elsif (exists $opts->{zero} and ref $opts->{zero} eq "CODE") {
 			&{$opts->{zero}}();
@@ -436,10 +438,10 @@ sub cmd
 # run buildah command with parameters
 sub buildah
 {
-	my @args = @_;
+	my @in_args = @_;
 
-	debug "buildah: args = ".join(" ", @args);
-	cmd({name => "buildah"}, prog("buildah"), @args);
+	debug "buildah: args = ".join(" ", @in_args);
+	cmd({name => "buildah"}, prog("buildah"), @in_args);
 	return;
 }
 
@@ -471,13 +473,12 @@ sub buildah
 # public method
 sub tag
 {
-	my $class_or_obj = shift;
+	my ($class_or_obj, @tags) = @_;
 	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $params = {};
-	if (ref $_[0] eq "HASH") {
-		$params = shift;
+	if (ref $tags[0] eq "HASH") {
+		$params = shift @tags;
 	}
-	my @tags = @_;
 
 	# get image name parameter
 	my $image = $params->{image}
@@ -491,6 +492,7 @@ sub tag
 
 	# run buildah-tag
 	buildah("tag", $image, @tags);
+	return;
 }
 
 #
@@ -538,15 +540,15 @@ sub build_order_deps
 	for (my $i=0; $i < scalar @$order; $i++) {
 		$self->{order}{$order->[$i]} = $i;
 	}
-	Container::Buildah::debug "build order (data): ".join(" ", grep {$_."=>".$self->{order}{$_}} keys %{$self->{order}});
+	Container::Buildah::debug "build order (data): "
+		.join(" ", grep {$_."=>".$self->{order}{$_}} keys %{$self->{order}});
+	return;
 }
 
 # run a container-build stage
 sub stage
 {
-	my $self = shift;
-	my $name = shift;
-	my %opt = @_;
+	my ($self, $name, %opt) = @_;
 
 	# get flag: are we internal to the user namespace for container setup
 	my $is_internal = (exists $opt{internal}) ? $opt{internal} : 0;
@@ -569,6 +571,7 @@ sub stage
 	symlink Container::Buildah->get_config("timestamp_str"), $logdir_top."/current";
 
 	# redirect STDOUT and STDERR to log file pipe for container stage
+	## no critic InputOutput::RequireBriefOpen
 	my $stagelog;
 	open($stagelog, '>>', $logdir_time."/".$name.($is_internal ? "-internal" : ""));
 	$stagelog->autoflush(1);
@@ -603,6 +606,7 @@ sub stage
 	close $stagelog;
 	open(STDOUT, '>&', $self->{oldstdout});
 	open(STDERR, '>&', $self->{oldstderr});
+	return;
 }
 
 #
@@ -665,6 +669,7 @@ sub main
 		# if we get here, we're done
 		say Container::Buildah->get_config("basename")." complete";
 	}
+	return 0;
 }
 
 1;
