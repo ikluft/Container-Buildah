@@ -141,7 +141,7 @@ sub count_tests
 my $basename = __FILE__;
 $basename =~ s/\W+/_/g;
 my $version = "1.1";
-%Container::Buildah::init_config = (
+my %local_config = (
 	basename => $basename,
 	testing_skip_yaml => 1,
 	version => $version,
@@ -160,6 +160,7 @@ my $version = "1.1";
 		},
 	},
 );
+Container::Buildah::init_config(%local_config);
 
 # fixtures for config tests
 my @config_tests = (
@@ -209,7 +210,7 @@ my @config_tests = (
 	},
 	{
 		path => [qw(config software_version)],
-		value => $Container::Buildah::init_config{software_version},
+		value => $local_config{software_version},
 	},
 	{
 		path => [qw(config software_version)],
@@ -239,11 +240,11 @@ my @config_tests = (
 	},
 	{
 		path => [qw(config stages build from)],
-		value => $Container::Buildah::init_config{stages}{build}{from},
+		value => $local_config{stages}{build}{from},
 	},
 	{
 		path => [qw(config stages build produces)],
-		array => $Container::Buildah::init_config{stages}{build}{produces},
+		array => $local_config{stages}{build}{produces},
 	},
 	{
 		path => [qw(config stages runtime)],
@@ -255,25 +256,25 @@ my @config_tests = (
 	},
 	{
 		path => [qw(config stages runtime from)],
-		value => $Container::Buildah::init_config{stages}{runtime}{from},
+		value => $local_config{stages}{runtime}{from},
 	},
 	{
 		path => [qw(config stages runtime from)],
-		value => $Container::Buildah::init_config{stages}{runtime}{from},
+		value => $local_config{stages}{runtime}{from},
 		get_config => 1,
 	},
 	{
 		path => [qw(config stages runtime consumes)],
-		array => $Container::Buildah::init_config{stages}{runtime}{consumes},
+		array => $local_config{stages}{runtime}{consumes},
 	},
 	{
 		path => [qw(config stages runtime consumes)],
-		array => $Container::Buildah::init_config{stages}{runtime}{consumes},
+		array => $local_config{stages}{runtime}{consumes},
 		get_config => 1,
 	},
 	{
 		path => [qw(config stages runtime commit)],
-		array => $Container::Buildah::init_config{stages}{runtime}{commit},
+		array => $local_config{stages}{runtime}{commit},
 	},
 	{
 		path => [qw(config stages runtime commit)],
@@ -285,7 +286,7 @@ my @config_tests = (
 plan tests => count_tests(@config_tests);
 
 # run tests
-my $cb = Container::Buildah->instance(($debug_mode ? (debug => 1) : ()), config => \%Container::Buildah::init_config);
+my $cb = Container::Buildah->instance(($debug_mode ? (debug => 1) : ()));
 $debug_mode and warn Dumper(\@config_tests);
 {
 	my $count = 0;

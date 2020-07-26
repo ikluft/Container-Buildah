@@ -9,7 +9,7 @@ package Container::Buildah;
 use Modern::Perl qw(2018); # oldest versions of Perl this will run on
 use autodie;
 
-use Carp qw(confess);
+use Carp qw(croak confess);
 use Exporter;
 use Getopt::Long;
 use Data::Dumper;
@@ -61,19 +61,20 @@ subcommands of buildah which take a container name as a parameter
 our @EXPORT_OK = qw(buildah);
 
 # globals
-$Container::Buildah::debug=0;
-$Container::Buildah::template_config = {
+my $debug=0;
+my %template_config = (
 	INTERPOLATE  => 1,
 	POST_CHOMP   => 1,
 	RECURSION    => 1,
 	EVAL_PERL    => 0,
 	PRE_CHOMP    => 2,
 	POST_CHOMP   => 2,
-};
-$Container::Buildah::init_config = {};
+);
+my %init_config;
 
 # initialization on the singleton instance
 # see parent Class::Singleton
+## no critic (Subroutines::ProhibitUnusedPrivateSubroutines, Miscellanea::ProhibitUnrestrictedNoCritic))
 sub _new_instance
 {
 	my ($class, %params) = @_;
@@ -98,10 +99,8 @@ sub _new_instance
 			confess __PACKAGE__.": can't find associative array for configuration data";
 		}
 	}
-	if (exists $params{config}) {
-		foreach my $key (keys %{$params{config}}) {
-			$self->{config}{$key} = $params{config}{$key};
-		}
+	foreach my $key (keys %init_config) {
+		$self->{config}{$key} = $init_config{$key};
 	}
 
 	# process container basename for this instance
@@ -118,33 +117,45 @@ sub _new_instance
 			$self->{config}{timestamp_str} = sprintf "%04d-%02d-%02d-%02d-%02d-%02d",
 				$timestamp[5], $timestamp[4], $timestamp[3],
 				$timestamp[2], $timestamp[1],$timestamp[0];
-			$ENV{$timestamp_envname} = $self->{config}{timestamp_str}; ## no critic Variables::RequireLocalizedPunctuationVars
+			## no critic (Variables::RequireLocalizedPunctuationVars, Miscellanea::ProhibitUnrestrictedNoCritic)
+			$ENV{$timestamp_envname} = $self->{config}{timestamp_str};
 		}
 	} else {
-		die __PACKAGE__.": required basename initialization parameter not found";
+		croak __PACKAGE__.": required basename initialization parameter not found";
 	}
 
 	# Template setup
-	$self->{template} = Template->new($Container::Buildah::template_config);
+	$self->{template} = Template->new(\%template_config);
 
 	# redirect STDIN from /dev/null so subprocesses run automated and can't prompt STDIN
-	open STDIN, "<", "/dev/null" or die "failed to redirect STDIN";
+	open STDIN, "<", "/dev/null"
+		or croak "failed to redirect STDIN";
 
 	# save STDOUT and STDERR so they can be restored after redirects
-	open($self->{oldstdout}, '>&STDOUT') or die "Can't dup STDOUT: $!";
-	open($self->{oldstderr}, '>&STDERR') or die "Can't dup STDERR: $!";
+	open($self->{oldstdout}, '>&STDOUT')
+		or croak "Can't dup STDOUT: $!";
+	open($self->{oldstderr}, '>&STDERR')
+		or croak "Can't dup STDERR: $!";
 
 	return $self;
 }
+## critic (Subroutines::ProhibitUnusedPrivateSubroutines, Miscellanea::ProhibitUnrestrictedNoCritic))
 
 #
 # configuration/utility functions
 #
 
+# initialize configuration
+sub init_config
+{
+	%init_config = @_;
+	return;
+}
+
 # print debug messages
 sub debug
 {
-	if ($Container::Buildah::debug) {
+	if ($debug) {
 		# get Container::Buildah ref from method-call parameter or class singleton instance
 		my @in_args = @_;
 		my $cb = ((ref $in_args[0]) and (ref $in_args[0] eq "Container::Buildah")) ? shift @in_args
@@ -168,7 +179,7 @@ sub expand
 	if (ref $value eq "ARRAY") {
 		my @result;
 		foreach my $subvalue (@$value) {
-			push @result, Container::Buildah::expand($subvalue);
+			push @result, expand($subvalue);
 		}
 		return \@result;
 	}
@@ -178,8 +189,10 @@ sub expand
 	my $cb = Container::Buildah->instance();
 	$cb->{template}->process(\$value, $cb->{config}, \$output);
 	debug "expand: $value -> $output";
+
+	# expand templates as long as any remain, up to 10 iterations
 	my $count=0;
-	while ($output =~ /\[%.*%\]/ and $count++ < 10) {
+	while ($output =~ / \[% .* %\] /x and $count++ < 10) {
 		$value = $output;
 		$output = ""; # clear because template concatenates to it
 		$cb->{template}->process(\$value, $cb->{config}, \$output);
@@ -219,7 +232,7 @@ sub get_config
 		}
 
 		# if the value is a scalar, perform variable expansion
-		return Container::Buildah::expand($node->{$key});
+		return expand($node->{$key});
 	}
 	return;
 }
@@ -240,14 +253,20 @@ sub required_config
 
 	# fail if any required parameters are missing
 	if (@missing) {
-		die __PACKAGE__.": required configuration parameters missing: ".join(" ", @missing);
+		croak __PACKAGE__.": required configuration parameters missing: ".join(" ", @missing);
 	}
+}
+
+# get debug mode value
+sub get_debug
+{
+	return $debug;
 }
 
 # set debug mode on or off
 sub set_debug
 {
-	$Container::Buildah::debug = shift;
+	$debug = shift;
 	return;
 }
 
@@ -293,7 +312,7 @@ sub envprog
 {
 	my $progname = shift;
 	my $envprog = (uc $progname)."_PROG";
-	$envprog =~ s/[\W-]+/_/g; # collapse any sequences of non-alphanumeric/non-underscore to a single underscore
+	$envprog =~ s/[\W-]+/_/xg; # collapse any sequences of non-alphanumeric/non-underscore to a single underscore
 	return $envprog;
 }
 
@@ -335,7 +354,7 @@ sub prog
 	}
 
 	# if we get here, we didn't find a known secure location for the program
-	die "unknown secure location for $progname - install it or set $envprog to point to it";
+	croak "unknown secure location for $progname - install it or set $envprog to point to it";
 }
 ## use critic
 
@@ -344,9 +363,9 @@ sub prog
 sub get_arch
 {
 	my $buildah_path = prog("buildah");
-	my $arch = qx($buildah_path info --format {{".host.arch"}});
+	my $arch = qx($buildah_path info --format {{".host.arch"}}); ## no critic (InputOutput::ProhibitBacktickOperators, Miscellanea::ProhibitUnrestrictedNoCritic)
 	if ($? == -1) {
-		die "get_arch: failed to execute: $!";
+		croak "get_arch: failed to execute: $!";
 	} elsif ($? & 127) {
 		printf STDERR "get_arch: child died with signal %d, %s coredump\n",
 			($? & 127),  ($? & 128) ? 'with' : 'without';
@@ -356,11 +375,11 @@ sub get_arch
 		exit 1;
 	}
 	if ($arch eq 'arm') {
-	  ## no critic InputOutput::RequireBriefOpen
+	  ## no critic (InputOutput::RequireBriefOpen, Miscellanea::ProhibitUnrestrictedNoCritic)
 	  open(my $cpuinfo_fh, '<', '/proc/cpuinfo')
-		or die "get_arch: can't open /proc/cpuinfo: $!";
+		or croak "get_arch: can't open /proc/cpuinfo: $!";
 	  while (<$cpuinfo_fh>) {
-		if (/^CPU architecture\s*:\s*(.*)/) {
+		if (/ ^ CPU \s architecture \s* : \s* (.*) /x) {
 			if ($1 eq "7") {
 				$arch='armv7';
 			}
@@ -416,10 +435,12 @@ sub cmd
 		system(@in_args);
 		if ($? == -1) {
 			confess "failed to execute command (".join(" ", @in_args)."): $!";
-		} elsif ($? & 127) {
+		}
+		if ($? & 127) {
 			confess sprintf "command (".join(" ", @in_args)." child died with signal %d, %s coredump\n",
 				($? & 127),  ($? & 128) ? 'with' : 'without';
-		} elsif ($? >> 8 != 0) {
+		}
+		if ($? >> 8 != 0) {
 			if (exists $opts->{nonzero} and ref $opts->{nonzero} eq "CODE") {
 				&{$opts->{nonzero}}($? >> 8);
 			} else {
@@ -429,10 +450,12 @@ sub cmd
 			&{$opts->{zero}}();
 		}
 		1;
+	} or do {
+		if ($@) {
+			confess "$name: ".$@;
+		}
 	};
-	if ($@) {
-		confess "$name: ".$@;
-	}
+	return;
 }
 
 # run buildah command with parameters
@@ -482,7 +505,7 @@ sub tag
 
 	# get image name parameter
 	my $image = $params->{image}
-		or die "tag: image paramater required";
+		or croak "tag: image parameter required";
 	delete $params->{image};
 
 	# error out if any unexpected parameters remain
@@ -506,7 +529,7 @@ sub build_order_deps
 	my %deps; # dependencies in a hash of arrays, to be fed to Algorithm::Dependency::Source::HoA
 	my $stages = $self->get_config("stages");
 	if (ref $stages ne "HASH") {
-		die "stages confguration must be a hash, got ".((ref $stages) ? ref $stages : "scalar");
+		croak "stages confguration must be a hash, got ".((ref $stages) ? ref $stages : "scalar");
 	}
 
 	# collect dependency data from each stage's configuration
@@ -520,7 +543,7 @@ sub build_order_deps
 		foreach my $param (qw(consumes depends)) {
 			if (exists $stages->{$stage}{$param}) {
 				if (ref $stages->{$stage}{$param} ne "ARRAY") {
-					die "stage $stage '$param' entry must be an array, got "
+					croak "stage $stage '$param' entry must be an array, got "
 						.((ref $stages->{$stage}{$param}) ? ref $stages->{$stage}{$param} : "scalar");
 				}
 				push @stage_deps, @{$stages->{$stage}{$param}};
@@ -535,13 +558,12 @@ sub build_order_deps
 	my $Source = Algorithm::Dependency::Source::HoA->new( \%deps );
 	my $algdep = Algorithm::Dependency->new(source => $Source);
 	my $order = $algdep->schedule_all;
-	Container::Buildah::debug "build order (computed): ".join(" ", @$order);
+	debug "build order (computed): ".join(" ", @$order);
 	$self->{order} = {};
 	for (my $i=0; $i < scalar @$order; $i++) {
 		$self->{order}{$order->[$i]} = $i;
 	}
-	Container::Buildah::debug "build order (data): "
-		.join(" ", grep {$_."=>".$self->{order}{$_}} keys %{$self->{order}});
+	debug "build order (data): ".join(" ", grep {$_."=>".$self->{order}{$_}} keys %{$self->{order}});
 	return;
 }
 
@@ -565,13 +587,13 @@ sub stage
 			mkdir $dir, 02770;
 		}
 	}
-	if (-l $logdir_top."/current") {
-		unlink $logdir_top."/current";
+	if (-l "$logdir_top/current") {
+		unlink "$logdir_top/current";
 	}
 	symlink Container::Buildah->get_config("timestamp_str"), $logdir_top."/current";
 
 	# redirect STDOUT and STDERR to log file pipe for container stage
-	## no critic InputOutput::RequireBriefOpen
+	## no critic (InputOutput::RequireBriefOpen, Miscellanea::ProhibitUnrestrictedNoCritic)
 	my $stagelog;
 	open($stagelog, '>>', $logdir_time."/".$name.($is_internal ? "-internal" : ""));
 	$stagelog->autoflush(1);
@@ -585,7 +607,7 @@ sub stage
 			# run the internal stage function since we're within the mounted container namespace
 			my $func = $stage->get_func;
 			if (not defined $func) {
-				die "stage $name internal: func not configured";
+				croak "stage $name internal: func not configured";
 			}
 			if (ref $func ne "CODE") {
 				confess "stage $name internal: func is not a code reference - got "
@@ -598,8 +620,8 @@ sub stage
 			# run the external stage wrapper which will mount the container namespace and call the internal stage in it
 			$stage->launch_namespace;
 		}
-	};
-	Container::Buildah::exception_handler $@;
+		1;
+	} or exception_handler $@;
 	debug "end $name (".($is_internal ? "internal" : "external").")";
 
 	# close output pipe
@@ -618,38 +640,39 @@ sub main
 {
 	# process command line
 	my %cmd_opts;
-	my @added_opts = (exists $Container::Buildah::init_config{added_opts} and ref $Container::Buildah::init_config{added_opts} eq "ARRAY") ? @{$Container::Buildah::init_config{added_opts}} : ();
+	my @added_opts = (exists $init_config{added_opts} and ref $init_config{added_opts} eq "ARRAY")
+		? @{$init_config{added_opts}} : ();
 	GetOptions(\%cmd_opts, "debug", "config:s", "internal:s", @added_opts);
 	if (exists $cmd_opts{debug}) {
-		Container::Buildah::set_debug($cmd_opts{debug});
+		set_debug($cmd_opts{debug});
 	}
 
 	# instantiate Container::Buildah object
 	my @do_yaml;
-	if (not exists $Container::Buildah::init_config{testing_skip_yaml}) {
+	if (not exists $init_config{testing_skip_yaml}) {
 		my $yaml_config = $cmd_opts{config};
 		if (not defined $yaml_config) {
 			foreach my $suffix (qw(yml yaml)) {
-				if (-f $Container::Buildah::init_config{basename}.".".$suffix) {
-					$yaml_config = $Container::Buildah::init_config{basename}.".".$suffix;
+				if (-f $init_config{basename}.".".$suffix) {
+					$yaml_config = $init_config{basename}.".".$suffix;
 					last;
 				}
 			}
 			if (not defined $yaml_config) {
-				die "YAML configuration required to set software versions";
+				croak "YAML configuration required to set software versions";
 			}
 		}
 		@do_yaml = (yaml_config => $yaml_config);
 	}
-	my $self = Container::Buildah->instance(@do_yaml, config => \%Container::Buildah::init_config);
+	my $self = Container::Buildah->instance(@do_yaml);
 
 	# process config
 	$self->{config}{opts} = \%cmd_opts;
-	$self->{config}{arch} = Container::Buildah::get_arch();
-	if (exists $Container::Buildah::init_config{required_config}
-		and ref $Container::Buildah::init_config{required_config} eq "ARRAY")
+	$self->{config}{arch} = get_arch();
+	if (exists $init_config{required_config}
+		and ref $init_config{required_config} eq "ARRAY")
 	{
-		$self->required_config(@{$Container::Buildah::init_config{required_config}});
+		$self->required_config(@{$init_config{required_config}});
 	}
 
 	if (exists $cmd_opts{internal}) {

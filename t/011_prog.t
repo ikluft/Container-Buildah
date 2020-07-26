@@ -176,13 +176,13 @@ my @prog_tests = (
 plan tests => (scalar @prog_tests)*4;
 
 # config for testing
-%Container::Buildah::init_config = (
+Container::Buildah::init_config(
 	basename => "prog_test",
 	testing_skip_yaml => 1,
 );
 
 # run tests
-my $cb = Container::Buildah->instance(($debug_mode ? (debug => 1) : ()), config => \%Container::Buildah::init_config);
+my $cb = Container::Buildah->instance(($debug_mode ? (debug => 1) : ()));
 Container::Buildah::prog(); # init cache
 {
 	my $count = 0;

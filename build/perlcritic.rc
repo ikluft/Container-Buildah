@@ -1,2 +1,7 @@
-severity  = stern
+severity  = harsh
 verbose = [%p] %m at line %l, column %c. %e (Severity: %s)\n
+color-severity-highest = blue
+color-severity-high = green
+color-severity-medium = yellow
+color-severity-low = rgb530
+color-severity-lowest = red
