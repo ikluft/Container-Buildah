@@ -3,7 +3,7 @@
 # by Ian Kluft
 
 ## no critic (Modules::RequireExplicitPackage)
-# use strict and warnings included here
+# 'use strict' and 'use warnings' included here
 use Modern::Perl qw(2018); # require 5.26 security update
 ## use critic (Modules::RequireExplicitPackage)
 
@@ -675,6 +675,8 @@ __END__
 =head1 SYNOPSIS
  
     use <Container::Buildah>;
+
+	# configure container build stages
 	Container::Buildah::init_config(
 		basename => "swpkg",
 		base_image => 'docker://docker.io/alpine:[% alpine_version %]',
@@ -693,14 +695,22 @@ __END__
 		},
 		swpkg_version => "9.16.4",
 	);
+
+	# functions to run each stage inside their container namespaces
 	sub stage_build {
+		my $stage = shift;
 		# code to run inside the namespace of the build container
 		# set up build container and copy newly-built Alpine APK packages into /opt/swpkg-apk ...
+		# See Container::Buildah:Stage for the object passed to each stage function
 	}
 	sub stage_runtime {
+		my $stage = shift;
 		# code to run inside the namespace of the runtime container
 		# set up runtime container including installing Alpine APK packages from /opt/swpkg-apk ...
+		# See Container::Buildah:Stage for the object passed to each stage function
 	}
+
+	# Container::Buildah::main serves as script mainline including processing command-line arguments
 	Container::Buildah::main(); # run all the container stages
   
 =head1 DESCRIPTION
@@ -720,6 +730,59 @@ The I<buildah> command has subcommands equivalent to Dockerfile directives.
 For each stage of a container build, B<Container::Buildah> creates a B<Container::Buildah::Stage> object
 and passes it to the callback function for that stage.
 There are wrapper methods in B<Container::Buildah::Stage> for
-subcommands of buildah which take a container name as a parameter
+subcommands of buildah which take a container name as a parameter.
+
+=head1 SUBROUTINES/METHODS 
+
+The B<Container::Buildah> module has one singleton instance per program.
+It contains configuration data for a container build process.
+The data is similar to what would be in a Dockerfile, except this module makes it scriptable.
+
+=head2 init_config
+
+=head2 debug
+
+=head2 get_config
+
+=head2 required_config
+
+=head2 get_debug
+
+=head2 set_debug
+
+=head2 prog
+
+=head2 buildah
+
+=head2 tag
+
+=head2 main
+
+=head1 DIAGNOSTICS
+
+=head1 CONFIGURATION AND ENVIRONMENT
+
+=head1 DEPENDENCIES
+
+=head1 INCOMPATIBILITIES
+
+=head1 BUGS AND LIMITATIONS
+
+Please report bugs via GitHub at L<https://github.com/ikluft/Container-Buildah/issues>
+
+Patches and enhancements may be submitted via a pull request at L<https://github.com/ikluft/Container-Buildah/pulls>
+
+=head1 AUTHOR
+
+Ian Kluft
+L<https://github.com/ikluft>
+L<https://metacpan.org/author/IKLUFT>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright (c) 2020 Ian Kluft. All rights reserved.
+Open Source software release under the conditions of the Apache License Version 2.0.
+Under the conditions of the license, this software is available "as is" without warranty.
+L<http://www.apache.org/licenses/>
 
 =cut

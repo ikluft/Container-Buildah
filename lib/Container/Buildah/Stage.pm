@@ -3,7 +3,7 @@
 # by Ian Kluft
 
 ## no critic (Modules::RequireExplicitPackage)
-# use strict and warnings included here
+# 'use strict' and 'use warnings' included here
 use Modern::Perl qw(2018); # require 5.26 security update
 ## use critic (Modules::RequireExplicitPackage)
 
@@ -17,9 +17,6 @@ use Container::Buildah;
 Readonly::Scalar my $mnt_env_name => "BUILDAHUTIL_MOUNT";
 Readonly::Array my @auto_accessors => qw(commit consumes depends from func mnt name produces user user_home);
 my $accessors_created = 0;
-
-# predeclare methods that will be auto-generated, so UNIVERSAL->can() knows of them
-use subs (grep {"get_".$_} @auto_accessors); # prepend get_ on read accessors
 
 # instantiate an object
 # this should only be called by Container::Buildah - these objects will be passed to each stage's stage->func()
@@ -669,6 +666,23 @@ __END__
 
 =pod
 
+=head1 SYNOPSIS
+
+	# Container::Buildah:Stage objects are created only by Container::Buildah
+	# It passes a separate instance to each stage function
+	sub stage_runtime
+	{
+		my $stage = shift;
+		$stage->run( [qw(/sbin/apk --update upgrade)] );
+		$stage->add( { dest => "/opt/swpkg" }, "tarball.tar.xz" );
+		$stage->config(
+			env => ["SWPKG_LOG=-g"],
+			volume => [qw(/var/cache/swpkg)],
+			port => ["8881"],
+			entrypoint => "/opt/swpkg/entrypoint.sh",
+		);
+	}
+
 =head1 DESCRIPTION
 
 B<Container::Buildah:Stage> objects are created and used by B<Container::Buildah>.
@@ -683,5 +697,58 @@ Each instance contains the configuration information for that stage of the build
 
 B<Container::Buildah::Stage> automatically adds the I<--add-history> option so that each action will be recorded
 as part of the OCI container build history.
+
+=head1 SUBROUTINES/METHODS 
+
+=head2 new
+
+=head2 stage_config
+
+=head2 debug
+
+=head2 container_name
+
+=head2 add
+
+=head2 commit
+
+=head2 config
+
+=head2 copy
+
+=head2 from
+
+=head2 mount
+
+=head2 run
+
+=head2 umount
+
+=head1 DIAGNOSTICS
+
+=head1 CONFIGURATION AND ENVIRONMENT
+
+=head1 DEPENDENCIES
+
+=head1 INCOMPATIBILITIES
+
+=head1 BUGS AND LIMITATIONS
+
+Please report bugs via GitHub at L<https://github.com/ikluft/Container-Buildah/issues>
+
+Patches and enhancements may be submitted via a pull request at L<https://github.com/ikluft/Container-Buildah/pulls>
+
+=head1 AUTHOR
+
+Ian Kluft
+L<https://github.com/ikluft>
+L<https://metacpan.org/author/IKLUFT>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright (c) 2020 Ian Kluft. All rights reserved.
+Open Source software release under the conditions of the Apache License Version 2.0.
+Under the conditions of the license, this software is available "as is" without warranty.
+L<http://www.apache.org/licenses/>
 
 =cut
