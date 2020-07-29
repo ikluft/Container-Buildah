@@ -1,5 +1,6 @@
 severity  = harsh
 verbose = [%p] %m at line %l, column %c. %e (Severity: %s)\n
+include   = RequirePodSections
 color-severity-lowest = bright_blue
 color-severity-low = bright_green
 color-severity-medium = bright_yellow
@@ -11,5 +12,8 @@ equivalent_modules = Modern::Perl
 
 [TestingAndDebugging::RequireUseWarnings]
 equivalent_modules = Modern::Perl
+
+[Documentation::RequirePodSections]
+lib_sections = NAME | VERSION | SYNOPSIS | DESCRIPTION | SUBROUTINES/METHODS | BUGS AND LIMITATIONS | AUTHOR | LICENSE AND COPYRIGHT
 
 

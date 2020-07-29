@@ -758,14 +758,6 @@ The data is similar to what would be in a Dockerfile, except this module makes i
 
 =head2 main
 
-=head1 DIAGNOSTICS
-
-=head1 CONFIGURATION AND ENVIRONMENT
-
-=head1 DEPENDENCIES
-
-=head1 INCOMPATIBILITIES
-
 =head1 BUGS AND LIMITATIONS
 
 Please report bugs via GitHub at L<https://github.com/ikluft/Container-Buildah/issues>
