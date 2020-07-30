@@ -45,6 +45,7 @@ my %init_config;
 
 # initialization on the singleton instance
 # see parent Class::Singleton
+# private class method - required by parent Class::Singleton
 ## no critic (Subroutines::ProhibitUnusedPrivateSubroutines, Miscellanea::ProhibitUnrestrictedNoCritic))
 sub _new_instance
 {
@@ -117,6 +118,7 @@ sub _new_instance
 #
 
 # initialize configuration
+# public class function
 sub init_config
 {
 	%init_config = @_;
@@ -124,6 +126,7 @@ sub init_config
 }
 
 # print debug messages
+# public class function
 sub debug
 {
 	if ($debug) {
@@ -142,6 +145,7 @@ sub debug
 }
 
 # template and variable expansion
+# private class function
 sub expand
 {
 	my $value = shift;
@@ -173,6 +177,7 @@ sub expand
 }
 
 # get configuration value
+# public class method
 sub get_config
 {
 	my ($class_or_obj, @path) = @_;
@@ -209,6 +214,7 @@ sub get_config
 }
 
 # allow caller to enforce its required configuration
+# public class method
 sub required_config
 {
 	my ($class_or_obj, @in_args) = @_;
@@ -229,12 +235,14 @@ sub required_config
 }
 
 # get debug mode value
+# public class function
 sub get_debug
 {
 	return $debug;
 }
 
 # set debug mode on or off
+# public class function
 sub set_debug
 {
 	$debug = shift;
@@ -247,6 +255,7 @@ sub set_debug
 
 # get path to the executing script
 # used for file dependency checks and re-running in containers
+# private class function
 sub progpath
 {
 	state $progpath = "$FindBin::Bin/$FindBin::Script";
@@ -254,6 +263,7 @@ sub progpath
 }
 
 # get file modification timestamp
+# private class function
 sub ftime
 {
 	my $file = shift;
@@ -265,6 +275,7 @@ sub ftime
 }
 
 # check if this script is newer than a deliverable file, or if the deliverable doesn't exist
+# private class function
 sub check_deliverable
 {
 	my $depfile = shift;
@@ -279,6 +290,7 @@ sub check_deliverable
 
 # generate name of environment variable for where to find a command
 # this is broken out as a separate function for tests to use it
+# private class function
 sub envprog
 {
 	my $progname = shift;
@@ -288,6 +300,7 @@ sub envprog
 }
 
 # look up secure program path
+# private class function
 ## no critic (RequireFinalReturn)
 sub prog
 {
@@ -331,6 +344,7 @@ sub prog
 
 # get OCI-recognized CPU architecture string for this system
 # includes tweak to add v7 to armv7
+# private class function
 sub get_arch
 {
 	my $buildah_path = prog("buildah");
@@ -367,6 +381,7 @@ sub get_arch
 #
 
 # handle exceptions from eval blocks
+# private class function
 sub exception_handler
 {
 	no autodie;
@@ -395,6 +410,7 @@ sub exception_handler
 #
 
 # run a command and report errors
+# private class function
 sub cmd
 {
 	my ($opts, @in_args) = @_;
@@ -430,6 +446,7 @@ sub cmd
 }
 
 # run buildah command with parameters
+# public class function
 sub buildah
 {
 	my @in_args = @_;
@@ -464,7 +481,7 @@ sub buildah
 
 # front end to "buildah tag: subcommand
 # usage: $cb->tag({image => "image_name"}, new_name, ...)
-# public method
+# public class method
 sub tag
 {
 	my ($class_or_obj, @tags) = @_;
@@ -494,6 +511,7 @@ sub tag
 #
 
 # compute container build order from dependencies
+# private class method
 sub build_order_deps
 {
 	my $self = shift;
@@ -539,6 +557,7 @@ sub build_order_deps
 }
 
 # run a container-build stage
+# private class method
 sub stage
 {
 	my ($self, $name, %opt) = @_;
@@ -607,6 +626,7 @@ sub stage
 #
 
 # process each defined stage of the container production pipeline
+# public class function
 sub main
 {
 	# process command line

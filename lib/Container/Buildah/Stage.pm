@@ -20,6 +20,7 @@ my $accessors_created = 0;
 
 # instantiate an object
 # this should only be called by Container::Buildah - these objects will be passed to each stage's stage->func()
+# private class method
 sub new {
 	my ($class, @in_args) = @_;
 
@@ -66,7 +67,7 @@ sub new {
 
 # return entry from stage configuration subset of Container::Buildah configuation
 # Note: this reads the stage configuration data, not to be confused with buildah's config subcommand
-# public method
+# public instance method
 sub stage_config
 {
 	my $self = shift;
@@ -85,6 +86,7 @@ sub stage_config
 }
 
 # debug method forward to Container::Buildah::debug()
+# public instance method
 sub debug
 {
 	my ($self, @in_args) = @_;
@@ -110,6 +112,7 @@ sub debug
 
 # generate read accessor methods
 # note: these parameters are set only in new() - there are no write accessors so none are generated
+# private class function
 sub generate_read_accessors
 {
 	# check if accessors have been created
@@ -144,7 +147,7 @@ sub generate_read_accessors
 
 # get container name
 # generate it the first time
-# public method
+# public instance method
 sub container_name
 {
 	my $self = shift;
@@ -166,7 +169,7 @@ sub container_name
 
 # front-end to "buildah add" subcommand
 # usage: $self->add( [{[dest => value]. [chown => mode]},] src, [src, ...] )
-# public method
+# public instance method
 sub add
 {
 	my ($self, @paths) = @_;
@@ -206,7 +209,7 @@ sub add
 
 # front-end to "buildah commit" subcommand
 # usage: $self->commit( [{param => value, ...}], image-name )
-# public method
+# public instance method
 sub commit
 {
 	my ($self, @in_args) = @_;
@@ -259,7 +262,7 @@ sub commit
 # front-end to "buildah config" subcommand
 # usage: $self->config( param => value, ...)
 # Note: this is for the container's configuration, not to be confused with configuration data of this module
-# public method
+# public instance method
 sub config
 {
 	my ($self, %params) = @_;
@@ -326,7 +329,7 @@ sub config
 
 # front-end to "buildah copy" subcommand
 # usage: $self->copy( [{dest => value},] src, [src, ...] )
-# public method
+# public instance method
 sub copy
 {
 	my ($self, @paths) = @_;
@@ -366,7 +369,7 @@ sub copy
 
 # front-end to "buildah from" subcommand
 # usage: $self->from( [{[dest => value]. [chown => mode]},] src, [src, ...] )
-# public method
+# public instance method
 sub from
 {
 	my ($self, %params) = @_;
@@ -380,7 +383,7 @@ sub from
 
 # front-end to "buildah mount" subcommand
 # usage: $path = $self->mount()
-# public method
+# public instance method
 sub mount
 {
 	my ($self, %params) = @_;
@@ -394,7 +397,7 @@ sub mount
 # Command parameter can be an array of strings for one command, or array of arrays of strings for multiple commands.
 # This applies the same command-line arguments (from %params) to each command. To change parameters for a command,
 # make a separate call to the function.
-# public method
+# public instance method
 sub run
 {
 	my ($self, @commands) = @_;
@@ -463,7 +466,7 @@ sub run
 
 # front-end to "buildah umount" subcommand
 # usage: $self->umount()
-# public method
+# public instance method
 sub umount
 {
 	my ($self, %params) = @_;
@@ -477,7 +480,7 @@ sub umount
 #
 
 # remove a container by name if it already exists - we need the name
-# private method
+# private instance method
 sub rmcontainer
 {
 	my $self = shift;
@@ -490,7 +493,7 @@ sub rmcontainer
 
 # derive tarball name for stage which produces it
 # defaults to the current stage
-# private method
+# private instance method
 sub tarball
 {
 	my $self = shift;
@@ -500,7 +503,7 @@ sub tarball
 
 # generic external wrapper function for all stages
 # mount the container namespace and enter it to run the custom stage build function
-# private method
+# private instance method
 sub launch_namespace
 {
 	my $self = shift;
@@ -561,7 +564,7 @@ sub launch_namespace
 }
 
 # import tarball(s) from other container stages if configured
-# private method
+# private instance method
 sub consume
 {
 	my $self = shift;
@@ -615,6 +618,7 @@ sub consume
 }
 
 # drop leading slash from a path
+# private class function
 sub dropslash
 {
 	my $str = shift;
@@ -625,7 +629,7 @@ sub dropslash
 }
 
 # export tarball for availability to other container stages if configured
-# private method
+# private instance method
 sub produce
 {
 	my $self = shift;
