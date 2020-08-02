@@ -27,6 +27,12 @@ sub new {
 	my $self = { @in_args };
 	bless $self, $class;
 
+	# enforce that only Container::Buildah module can call this method
+	my ($package) = caller;
+	if ($package ne "Container::Buildah") {
+		croak  __PACKAGE__."->new() can only be called from Container::Buildah";
+	}
+
 	# initialize accessor methods if not done on a prior call to new()
 	generate_read_accessors();
 
@@ -705,6 +711,9 @@ as part of the OCI container build history.
 =head1 SUBROUTINES/METHODS 
 
 =head2 new
+
+instantiates a B<Container::Buildah:Stage> object.
+This method is private and may only be called by B<Container::Buildah>.
 
 =head2 stage_config
 
