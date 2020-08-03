@@ -490,9 +490,10 @@ sub umount
 sub rmcontainer
 {
 	my $self = shift;
+	my $cb = Container::Buildah->instance();
 
 	Container::Buildah::cmd({name => "rmcontainer", nonzero => sub {},
-		zero => sub {Container::Buildah::buildah("rm", $self->container_name);}},
+		zero => sub {$cb->rm($self->container_name);}},
 		Container::Buildah::prog("buildah")." inspect ".$self->container_name.' >/dev/null 2>&1');
 	return;
 }

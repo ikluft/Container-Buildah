@@ -254,7 +254,7 @@ sub set_debug
 #
 
 # get path to the executing script
-# used for file dependency checks and re-running in containers
+# used for file dependency checks and re-running the script in a container namespace
 # private class function
 sub progpath
 {
@@ -472,14 +472,14 @@ sub buildah
 # - pull
 # - push
 # - rename
-# - rm
+# ✓ rm
 # - rmi
 # ✓ tag
 # - umount (for image or container)
 # - unshare
 # - version
 
-# front end to "buildah tag: subcommand
+# front end to "buildah tag" subcommand
 # usage: $cb->tag({image => "image_name"}, new_name, ...)
 # public class method
 sub tag
@@ -503,6 +503,29 @@ sub tag
 
 	# run buildah-tag
 	buildah("tag", $image, @tags);
+	return;
+}
+
+# front end to "buildah rm" subcommand
+# usage: $cb->rm(container, [...])
+#    or: $cb->rm({all => 1})
+sub rm
+{
+	my ($class_or_obj, @containers) = @_;
+	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $containers[0] eq "HASH") {
+		$params = shift @containers;
+	}
+
+	# if "all" parameter is provides, remove all containers
+	if ((exists $params->{all}) and $params->{all}) {
+		buildah("rm", "--all");
+		return;
+	}
+
+	# remove containers listed in arguments
+	buildah("rm", @containers);
 	return;
 }
 
