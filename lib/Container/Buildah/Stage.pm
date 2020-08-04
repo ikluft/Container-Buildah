@@ -543,11 +543,13 @@ sub launch_namespace
 	$self->rmcontainer;
 
 	# get the base image
+	my $cb = Container::Buildah->instance();
 	Container::Buildah::buildah("from", "--name=".$self->container_name, $self->get_from);
 
 	# run the builder script in the container
-	Container::Buildah::buildah("unshare", "--mount", $mnt_env_name."=".$self->container_name,
-		Container::Buildah::progpath(), "--internal=".$self->get_name, (Container::Buildah::get_debug() ? "--debug" : ()));
+	$cb->unshare({container => $self->container_name, envname => $mnt_env_name},
+		Container::Buildah::progpath(), "--internal=".$self->get_name,
+		(Container::Buildah::get_debug() ? "--debug" : ()));
 
 	# commit the container if configured
 	my $commit = $self->get_commit;
@@ -564,7 +566,6 @@ sub launch_namespace
 	my $image_name = shift @tags;
 	$self->commit($image_name);
 	if (@tags) {
-		my $cb = Container::Buildah->instance();
 		$cb->tag({image => $image_name}, @tags);
 	}
 	return;

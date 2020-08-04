@@ -415,7 +415,7 @@ sub cmd
 {
 	my ($opts, @in_args) = @_;
 	my $name = (exists $opts->{name}) ? $opts->{name} : "cmd";
-	no autodie;
+	no autodie qw(system);
 
 	eval {
 		debug "cmd $name ".join(" ", @in_args);
@@ -476,7 +476,7 @@ sub buildah
 # - rmi
 # ✓ tag
 # - umount (for image or container)
-# - unshare
+# ✓ unshare
 # - version
 
 # front end to "buildah tag" subcommand
@@ -526,6 +526,39 @@ sub rm
 
 	# remove containers listed in arguments
 	buildah("rm", @containers);
+	return;
+}
+
+# front end to "buildah unshare" (user namespace share) subcommand
+# usage: $cb->unshare({container => "name_or_id", [envname => "env_var_name"]}, "cmd", "args", ... )
+sub unshare
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+	
+	# construct arguments for buildah-unshare command
+	my @args;
+	if (exists $params->{container}) {
+		if (exists $params->{envname}) {
+			push @args, "--mount", $params->{envname}."=".$params->{container};
+			delete $params->{envname};
+		} else {
+			push @args, "--mount", $params->{container};
+		}
+		delete $params->{container};
+	}
+
+	# error out if any unexpected parameters remain
+	if (%$params) {
+		confess "run: received undefined parameters '".(join(" ", keys %$params));
+	}
+
+	# run buildah-unshare command
+	buildah("unshare", @args, "--", @in_args);
 	return;
 }
 
