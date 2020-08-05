@@ -473,7 +473,7 @@ sub buildah
 # - push
 # - rename
 # ✓ rm
-# - rmi
+# ✓ rmi
 # ✓ tag
 # - umount (for image or container)
 # ✓ unshare
@@ -506,7 +506,7 @@ sub tag
 	return;
 }
 
-# front end to "buildah rm" subcommand
+# front end to "buildah rm" (remove container) subcommand
 # usage: $cb->rm(container, [...])
 #    or: $cb->rm({all => 1})
 sub rm
@@ -526,6 +526,42 @@ sub rm
 
 	# remove containers listed in arguments
 	buildah("rm", @containers);
+	return;
+}
+
+# front end to "buildah rmi" (remove image) subcommand
+# usage: $cb->rmi([{force => 1},] image, [...])
+#    or: $cb->rmi({prune => 1})
+#    or: $cb->rmi({all => 1})
+sub rmi
+{
+	my ($class_or_obj, @images) = @_;
+	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $images[0] eq "HASH") {
+		$params = shift @images;
+	}
+
+	# if "all" parameter is provides, remove all images
+	if ((exists $params->{all}) and $params->{all}) {
+		buildah("rmi", "--all");
+		return;
+	}
+
+	# if "prune" parameter is provides, remove all images
+	if ((exists $params->{prune}) and $params->{prune}) {
+		buildah("rmi", "--prune");
+		return;
+	}
+
+	# process force parameter
+	my @args;
+	if ((exists $params->{force}) and $params->{force}) {
+		push @args, "--force";
+	}
+
+	# remove images listed in arguments
+	buildah("rmi", @args, @images);
 	return;
 }
 
