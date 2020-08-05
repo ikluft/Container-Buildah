@@ -14,6 +14,8 @@ use Exporter;
 use Getopt::Long;
 use Data::Dumper;
 use IO::Handle;
+use IPC::Run;
+use File::Slurp;
 use FindBin;
 use File::stat;
 use File::Sync qw(sync);
@@ -347,31 +349,16 @@ sub prog
 # private class function
 sub get_arch
 {
-	my $buildah_path = prog("buildah");
-	my $arch = qx($buildah_path info --format {{".host.arch"}}); ## no critic (InputOutput::ProhibitBacktickOperators, Miscellanea::ProhibitUnrestrictedNoCritic)
-	if ($? == -1) {
-		croak "get_arch: failed to execute: $!";
-	} elsif ($? & 127) {
-		printf STDERR "get_arch: child died with signal %d, %s coredump\n",
-			($? & 127),  ($? & 128) ? 'with' : 'without';
-		exit 1;
-	} elsif ($? >> 8 != 0) {
-		printf STDERR "get_arch: child exited with value %d\n", $? >> 8;
-		exit 1;
-	}
+	my $arch;
+	IPC::Run::run [prog("buildah"), "info", "--format", q({{.host.arch}})], \undef, \$arch
+		or croak "get_arch: failed to run buildah - exit code $?" ;
 	if ($arch eq 'arm') {
-	  ## no critic (InputOutput::RequireBriefOpen, Miscellanea::ProhibitUnrestrictedNoCritic)
-	  open(my $cpuinfo_fh, '<', '/proc/cpuinfo')
-		or croak "get_arch: can't open /proc/cpuinfo: $!";
-	  while (<$cpuinfo_fh>) {
-		if (/ ^ CPU \s architecture \s* : \s* (.*) /x) {
+		my $cpuinfo = File::Slurp::read_file('/proc/cpuinfo', err_mode => "croak");
+		if (/ ^ CPU \s architecture \s* : \s* (.*) $ /x) {
 			if ($1 eq "7") {
 				$arch='armv7';
 			}
-			last;
 		}
-	  }
-	  close $cpuinfo_fh;
 	}
 	return $arch;
 }
