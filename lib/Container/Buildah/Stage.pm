@@ -607,8 +607,6 @@ sub consume
 				($group_name, $gid) = split /=/x, $group_name;
 			}
 		}
-		# TODO - make this portable to containers based on other distros
-		$self->run([qw(/sbin/apk add --no-cache shadow)]);
 		if (defined $group_name) {
 			$self->run(["/usr/sbin/groupadd", ((defined $gid) ? ("--gid=$gid") : ()), $group_name]);
 		}
@@ -617,8 +615,6 @@ sub consume
 			["/usr/sbin/useradd", ((defined $uid) ? ("--uid=$uid") : ()),
 				((defined $group_name) ? ("--gid=$group_name") : ()),
 				((defined $user_home) ? ("--home-dir=$user_home") : ()), $user_name],
-			# TODO - make this portable to containers based on other distros
-			[qw(/sbin/apk del shadow)]
 		);
 	}
 
