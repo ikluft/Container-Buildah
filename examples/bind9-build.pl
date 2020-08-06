@@ -40,6 +40,7 @@ Container::Buildah::init_config(
 	stages => {
 		build => {
 			from => "[% base_image %]",
+			func_deps => \&do_deps,
 			func_exec => \&stage_build,
 			produces => [$apk_dir],
 			user => "named:named",
@@ -48,6 +49,7 @@ Container::Buildah::init_config(
 		runtime => {
 			from => "[% base_image %]",
 			consumes => [qw(build)],
+			func_deps => \&do_deps,
 			func_exec => \&stage_runtime,
 			user => "named:named",
 			user_home => "/home/bind9",
@@ -67,10 +69,10 @@ sub do_deps
 
 	$stage->run(
 		# install updates for APKs at this Alpine OS release level
-		[qw(/sbin/apk --update upgrade)],
+		[qw(/sbin/apk --no-cache --update upgrade)],
 
 		# install shadow as a dependency for user/user_home configuration
-		# TODO add auto-dependency for configs based on Linux distro type (Alpine, Debian, Fedora, CentOS)
+		# TODO add auto-dependency for configs based on Linux distro type (Alpine, Debian, Ubuntu, Fedora, CentOS/RHEL)
 		[qw(/sbin/apk add --no-cache shadow)],
 	);
 }

@@ -138,9 +138,9 @@ sub status
 		: Container::Buildah->instance();
 
 	# print status message
-	say STDOUT "=== status:  ".join(" ", @in_args);
+	say STDOUT "=== status: ".join(" ", @in_args);
 	if ((exists $cb->{oldstdout}) and ($cb->{oldstdout}->fileno != fileno(STDERR))) {
-		$cb->{oldstdout}->print("=== status ".join(" ", @in_args)."\n");
+		$cb->{oldstdout}->print("=== status: ".join(" ", @in_args)."\n");
 	}
 	return;
 }
