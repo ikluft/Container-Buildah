@@ -150,12 +150,14 @@ my %local_config = (
 		build => {
 			from => "nowhere",
 			produces => [qw(/usr/local /opt/build-dir)],
-			func => sub {},
+			func_deps => sub {},
+			func_exec => sub {},
 		},
 		runtime => {
 			from => "foo",
 			consumes => [qw(build)],
-			func => sub {},
+			func_deps => sub {},
+			func_exec => sub {},
 			commit => ["[% basename %]:[% software_version %]", "[% basename %]:latest"],
 		},
 	},
@@ -235,7 +237,11 @@ my @config_tests = (
 		ref => "HASH",
 	},
 	{
-		path => [qw(config stages build func)],
+		path => [qw(config stages build func_deps)],
+		ref => "CODE",
+	},
+	{
+		path => [qw(config stages build func_exec)],
 		ref => "CODE",
 	},
 	{
@@ -251,7 +257,11 @@ my @config_tests = (
 		ref => "HASH",
 	},
 	{
-		path => [qw(config stages runtime func)],
+		path => [qw(config stages runtime func_deps)],
+		ref => "CODE",
+	},
+	{
+		path => [qw(config stages runtime func_exec)],
 		ref => "CODE",
 	},
 	{

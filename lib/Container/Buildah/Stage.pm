@@ -8,6 +8,7 @@ use Modern::Perl qw(2018); # require 5.26 security update
 ## use critic (Modules::RequireExplicitPackage)
 
 package Container::Buildah::Stage;
+
 use autodie;
 use Carp qw(croak confess);
 use Cwd;
@@ -15,11 +16,13 @@ use Readonly;
 use Container::Buildah;
 
 Readonly::Scalar my $mnt_env_name => "BUILDAHUTIL_MOUNT";
-Readonly::Array my @auto_accessors => qw(commit consumes depends from func mnt name produces user user_home);
+Readonly::Array my @auto_accessors => qw(commit consumes depends from func_deps func_exec mnt name produces
+	user user_home);
 my $accessors_created = 0;
 
 # instantiate an object
-# this should only be called by Container::Buildah - these objects will be passed to each stage's stage->func()
+# this should only be called by Container::Buildah
+# these objects will be passed to each stage's stage->func_*()
 # private class method
 sub new {
 	my ($class, @in_args) = @_;
@@ -57,7 +60,7 @@ sub new {
 
 	# check for missing stage config settings
 	my @missing;
-	foreach my $key (qw(from func)) {
+	foreach my $key (qw(from func_exec)) {
 		if (not exists $self->{$key}) {
 			push @missing, $key;
 		}
@@ -91,6 +94,18 @@ sub stage_config
 	return;
 }
 
+# status method forward to Container::Buildah::status()
+# public instance method
+sub status
+{
+	my ($self, @in_args) = @_;
+	my $cb = Container::Buildah->instance();
+	my @label;
+	@label = ('['.$self->container_name().']');
+	$cb->status(@label, @in_args);
+	return;
+}
+
 # debug method forward to Container::Buildah::debug()
 # public instance method
 sub debug
@@ -99,7 +114,7 @@ sub debug
 	my $cb = Container::Buildah->instance();
 	my @label;
 	if (exists $self->{config}{container_name}) {
-		@label = ('['.$self->container_name().']');
+		@label = ('['.$self->{config}{container_name}.']');
 	}
 	$cb->debug(@label, @in_args);
 	return;
@@ -109,7 +124,8 @@ sub debug
 #sub get_commit    { my $self = shift; return $self->stage_config("commit"); }
 #sub get_consumes  { my $self = shift; return $self->stage_config("consumes"); }
 #sub get_from      { my $self = shift; return $self->stage_config("from"); }
-#sub get_func      { my $self = shift; return $self->stage_config("func"); }
+#sub get_func_deps { my $self = shift; return $self->stage_config("func_deps"); }
+#sub get_func_exec { my $self = shift; return $self->stage_config("func_exec"); }
 #sub get_mnt       { my $self = shift; return $self->stage_config("mnt"); }
 #sub get_name      { my $self = shift; return $self->stage_config("name"); }
 #sub get_produces  { my $self = shift; return $self->stage_config("produces"); }
@@ -522,15 +538,15 @@ sub launch_namespace
 		my $tarball_out = $self->tarball;
 
 		# check if deliverable tarball file already exists
-		my $status = Container::Buildah::check_deliverable($tarball_out);
-		if (not $status) {
+		my $tarball_result = Container::Buildah::check_deliverable($tarball_out);
+		if (not $tarball_result) {
 			# skip this stage because the deliverable already exists and is up-to-date
-			say STDERR "build tarball skipped - deliverable up-to-date $tarball_out";
+			$self->status("build tarball skipped - deliverable up-to-date $tarball_out");
 			return;
 		}
 
 		# continue with this build stage if tarball missing or program updated more recently than tarball
-		say STDERR "build tarball ($status): $tarball_out";
+		$self->status("build tarball ($tarball_result): $tarball_out");
 	}
 
 	#
@@ -543,10 +559,10 @@ sub launch_namespace
 	$self->rmcontainer;
 
 	# get the base image
-	my $cb = Container::Buildah->instance();
 	Container::Buildah::buildah("from", "--name=".$self->container_name, $self->get_from);
 
 	# run the builder script in the container
+	my $cb = Container::Buildah->instance();
 	$cb->unshare({container => $self->container_name, envname => $mnt_env_name},
 		Container::Buildah::progpath(), "--internal=".$self->get_name,
 		(Container::Buildah::get_debug() ? "--debug" : ()));

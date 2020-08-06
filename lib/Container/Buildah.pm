@@ -8,6 +8,7 @@ use Modern::Perl qw(2018); # require 5.26 security update
 ## use critic (Modules::RequireExplicitPackage)
 
 package Container::Buildah;
+
 use autodie;
 use Carp qw(croak confess);
 use Exporter;
@@ -127,6 +128,23 @@ sub init_config
 	return;
 }
 
+# print status messages
+# public class function
+sub status
+{
+	# get Container::Buildah ref from method-call parameter or class singleton instance
+	my @in_args = @_;
+	my $cb = ((ref $in_args[0]) and (ref $in_args[0] eq "Container::Buildah")) ? shift @in_args
+		: Container::Buildah->instance();
+
+	# print status message
+	say STDOUT "=== status:  ".join(" ", @in_args);
+	if ((exists $cb->{oldstdout}) and ($cb->{oldstdout}->fileno != fileno(STDERR))) {
+		$cb->{oldstdout}->print("=== status ".join(" ", @in_args)."\n");
+	}
+	return;
+}
+
 # print debug messages
 # public class function
 sub debug
@@ -138,9 +156,9 @@ sub debug
 			: Container::Buildah->instance();
 
 		# print debug message
-		say STDERR "debug: ".join(" ", @in_args);
+		say STDERR "--- debug: ".join(" ", @in_args);
 		if ((exists $cb->{oldstderr}) and ($cb->{oldstderr}->fileno != fileno(STDERR))) {
-			$cb->{oldstderr}->print("debug: ".join(" ", @in_args)."\n");
+			$cb->{oldstderr}->print("--- debug: ".join(" ", @in_args)."\n");
 		}
 	}
 	return;
@@ -670,28 +688,47 @@ sub stage
 	open(STDERR, '>&', $stagelog);
 
 	# generate container and run this stage's function in it
-	debug "begin $name (".($is_internal ? "internal" : "external").")";
+	$stage->status("begin (".($is_internal ? "internal" : "external").")");
 	eval {
 		if ($is_internal) {
+			#
 			# run the internal stage function since we're within the mounted container namespace
-			my $func = $stage->get_func;
-			if (not defined $func) {
-				croak "stage $name internal: func not configured";
+			#
+
+			# retrieve the internal stage functions
+			my $func_deps = $stage->get_func_deps;
+			my $func_exec = $stage->get_func_exec;
+
+			# enforce required func_exec configuration (func_deps is optional)
+			if (not defined $func_exec) {
+				croak "stage $name internal: func_exec not configured";
 			}
-			if (ref $func ne "CODE") {
-				confess "stage $name internal: func is not a code reference - got "
-					.(ref $func);
+			if (ref $func_exec ne "CODE") {
+				confess "stage $name internal: func_exec is not a code reference - got "
+					.(ref $func_exec);
 			}
+
+			# run deps & exec functions for the stage, process consumed or produced tarballs
+			if ((defined $func_deps) and (ref $func_deps eq "CODE")) {
+				$stage->status("func_deps");
+				$func_deps->($stage);
+			} else {
+				$stage->status("func_deps - skipped, not configured");
+			}
+			$stage->status("consume");
 			$stage->consume; # import tarball(s) from other stage(s), if configured
-			$func->($stage);
+			$stage->status("func_exec");
+			$func_exec->($stage);
+			$stage->status("produce");
 			$stage->produce; # export tarball for another stage to use, if configured
 		} else {
 			# run the external stage wrapper which will mount the container namespace and call the internal stage in it
+			$stage->status("launch_namespace");
 			$stage->launch_namespace;
 		}
 		1;
 	} or exception_handler $@;
-	debug "end $name (".($is_internal ? "internal" : "external").")";
+	$stage->status("end (".($is_internal ? "internal" : "external").")");
 
 	# close output pipe
 	close $stagelog;
@@ -782,13 +819,13 @@ __END__
 		stages => {
 			build => {
 				from => "[% base_image %]",
-				func => \&stage_build,
+				func_exec => \&stage_build,
 				produces => [qw(/opt/swpkg-apk)],
 			},
 			runtime => {
 				from => "[% base_image %]",
 				consumes => [qw(build)],
-				func => \&stage_runtime,
+				func_exec => \&stage_runtime,
 				commit => ["[% basename %]:[% swpkg_version %]", "[% basename %]:latest"],
 			}
 		},
