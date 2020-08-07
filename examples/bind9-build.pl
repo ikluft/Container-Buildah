@@ -36,7 +36,7 @@ Readonly::Scalar my $apk_total => 7;
 Container::Buildah::init_config(
 	basename => "bind9",
 	base_image => 'docker://docker.io/alpine:[% alpine_version %]',
-	required_config => [qw(alpine_version)],
+	required_config => [qw(alpine_version bind_version bind_src_sha512sum)],
 	stages => {
 		build => {
 			from => "[% base_image %]",
@@ -56,9 +56,7 @@ Container::Buildah::init_config(
 			commit => ["[% basename %]:[% bind_version %]", "[% basename %]:latest"],
 		}
 	},
-	bind_version => "9.16.5",
 	bind_src_file => "bind-[% bind_version %].tar.xz",
-	bind_src_sha512sum => "789fc19f60e81f67ef13ebacd030ea5d8f8cc42cf5f06a01ee2eefe9b7c6d3b10603a3a6a3df85b0e5d770fcf462ce8dddc3a7e5f7f2dab27aa5879ee5380eb7",
 	bind_apk_src => "https://git.alpinelinux.org/aports/plain/main/bind/?h=master",
 );
 
@@ -69,7 +67,7 @@ sub do_deps
 
 	$stage->run(
 		# install updates for APKs at this Alpine OS release level
-		[qw(/sbin/apk --no-cache --update upgrade)],
+		[qw(/sbin/apk --no-cache update)],
 
 		# install shadow as a dependency for user/user_home configuration
 		# TODO add auto-dependency for configs based on Linux distro type (Alpine, Debian, Ubuntu, Fedora, CentOS/RHEL)
@@ -88,7 +86,7 @@ sub stage_build
 
 	$stage->run(
 		# install dependencies
-		[qw(/sbin/apk add --no-cache build-base alpine-sdk wget perl shadow)],
+		[qw(/sbin/apk add --no-cache build-base alpine-sdk wget perl)],
 
 		# create build and product directories
 		["mkdir", $apkbuild_dir, $apk_dir],
@@ -106,8 +104,7 @@ sub stage_build
 			.'/isc-config\.sh/ and $_="";'
 			.'s/[0-9a-f]{128}\s+bind-.*\.tar\.[gx]z$/'.Container::Buildah->get_config("bind_src_sha512sum")
 				.'  '.Container::Buildah->get_config("bind_src_file").'/;'
-			.'s/(makedepends=")/$1libuv-dev libuv-static/;'
-			.'s=(https://downloads\.isc\.org/isc/.*\.tar)\.gz=\1.xz=;',
+			.'s/(^\s*depends=")/$1libuv-static /;',
 			"APKBUILD"],
 
 		# set up APK build environment
@@ -117,7 +114,8 @@ sub stage_build
 		# build BIND9 APK
 		[qw(su --login -- named /usr/bin/abuild-keygen -a)],
 		[qw(su --login -- named /usr/bin/abuild verify)],
-		[qw(su --login -- named /usr/bin/abuild -r)],
+		[qw(/usr/bin/abuild -F deps)],
+		[qw(su --login -- named /usr/bin/abuild)],
 
 		# save built BIND9 APKs
 		["/bin/sh", "-c", "cp -p packages/opt/$arch/* .abuild/named-*.pub ".$apk_dir],

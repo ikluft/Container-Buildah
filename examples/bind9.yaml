@@ -1,2 +1,4 @@
 ---
 alpine_version: 3.12.0
+bind_version: 9.16.5
+bind_src_sha512sum: 789fc19f60e81f67ef13ebacd030ea5d8f8cc42cf5f06a01ee2eefe9b7c6d3b10603a3a6a3df85b0e5d770fcf462ce8dddc3a7e5f7f2dab27aa5879ee5380eb7
