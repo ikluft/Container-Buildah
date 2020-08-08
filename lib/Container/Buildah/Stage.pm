@@ -722,52 +722,39 @@ Each instance contains the configuration information for that stage of the build
 B<Container::Buildah::Stage> automatically adds the I<--add-history> option so that each action will be recorded
 as part of the OCI container build history.
 
-=head1 SUBROUTINES/METHODS 
-
-=head2 new
+=method new
 
 instantiates a B<Container::Buildah:Stage> object.
 This method is private and may only be called by B<Container::Buildah>.
 
-=head2 stage_config
+=func stage_config
 
-=head2 debug
+=method status
 
-=head2 container_name
+=method debug
 
-=head2 add
+=method container_name
 
-=head2 commit
+=method add
 
-=head2 config
+=method commit
 
-=head2 copy
+=method config
 
-=head2 from
+=method copy
 
-=head2 mount
+=method from
 
-=head2 run
+=method mount
 
-=head2 umount
+=method run
+
+=method umount
 
 =head1 BUGS AND LIMITATIONS
 
 Please report bugs via GitHub at L<https://github.com/ikluft/Container-Buildah/issues>
 
 Patches and enhancements may be submitted via a pull request at L<https://github.com/ikluft/Container-Buildah/pulls>
-
-=head1 AUTHOR
-
-Ian Kluft
-L<https://github.com/ikluft>
-L<https://metacpan.org/author/IKLUFT>
-
-=head1 LICENSE AND COPYRIGHT
-
-Copyright (c) 2020 Ian Kluft. All rights reserved.
-Open Source software release under the conditions of the Apache License Version 2.0.
-Under the conditions of the license, this software is available "as is" without warranty.
-L<http://www.apache.org/licenses/>
 
 =cut

@@ -14,6 +14,6 @@ equivalent_modules = Modern::Perl
 equivalent_modules = Modern::Perl
 
 [Documentation::RequirePodSections]
-lib_sections = NAME | VERSION | SYNOPSIS | DESCRIPTION | SUBROUTINES/METHODS | BUGS AND LIMITATIONS | AUTHOR | LICENSE AND COPYRIGHT
+lib_sections = NAME | VERSION | SYNOPSIS | DESCRIPTION | BUGS AND LIMITATIONS | AUTHOR | COPYRIGHT AND LICENSE
 
 

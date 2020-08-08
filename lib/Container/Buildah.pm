@@ -868,49 +868,36 @@ and passes it to the callback function for that stage.
 There are wrapper methods in B<Container::Buildah::Stage> for
 subcommands of buildah which take a container name as a parameter.
 
-=head1 SUBROUTINES/METHODS 
-
 The B<Container::Buildah> module has one singleton instance per program.
 It contains configuration data for a container build process.
 The data is similar to what would be in a Dockerfile, except this module makes it scriptable.
 
-=head2 init_config
+=func init_config
 
-=head2 debug
+=func status
 
-=head2 get_config
+=func debug
 
-=head2 required_config
+=method get_config
 
-=head2 get_debug
+=method required_config
 
-=head2 set_debug
+=method get_debug
 
-=head2 prog
+=method set_debug
 
-=head2 buildah
+=method prog
 
-=head2 tag
+=method buildah
 
-=head2 main
+=method tag
+
+=method main
 
 =head1 BUGS AND LIMITATIONS
 
 Please report bugs via GitHub at L<https://github.com/ikluft/Container-Buildah/issues>
 
 Patches and enhancements may be submitted via a pull request at L<https://github.com/ikluft/Container-Buildah/pulls>
-
-=head1 AUTHOR
-
-Ian Kluft
-L<https://github.com/ikluft>
-L<https://metacpan.org/author/IKLUFT>
-
-=head1 LICENSE AND COPYRIGHT
-
-Copyright (c) 2020 Ian Kluft. All rights reserved.
-Open Source software release under the conditions of the Apache License Version 2.0.
-Under the conditions of the license, this software is available "as is" without warranty.
-L<http://www.apache.org/licenses/>
 
 =cut
