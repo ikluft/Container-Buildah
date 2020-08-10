@@ -731,7 +731,11 @@ This method is private and may only be called by B<Container::Buildah>.
 
 =method status
 
+prints a list of strings to STDOUT
+
 =method debug
+
+prints a list of strings to STDERR, if debugging mode is on
 
 =method container_name
 

@@ -876,7 +876,11 @@ The data is similar to what would be in a Dockerfile, except this module makes i
 
 =func status
 
+prints a list of strings to STDOUT
+
 =func debug
+
+prints a list of strings to STDERR, if debugging mode is on
 
 =method get_config
 
