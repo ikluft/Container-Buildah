@@ -265,7 +265,7 @@ sub get_debug
 # public class function
 sub set_debug
 {
-	$debug = shift;
+	$debug = (shift ? 1 : 0); # save boolean value
 	return;
 }
 
@@ -888,7 +888,11 @@ prints a list of strings to STDERR, if debugging mode is on
 
 =method get_debug
 
+return boolean value of debug mode flag
+
 =method set_debug
+
+take a boolean value parameter to set the debug mode flag
 
 =method prog
 
