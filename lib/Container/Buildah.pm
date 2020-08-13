@@ -484,6 +484,28 @@ sub buildah
 # ✓ unshare
 # - version
 
+# front end to "buildah info" subcommand
+# usage: $cb->info([{format => format}])
+# this uses YAML::XS with the assumption that buildah-info's JSON output is a proper subset of YAML
+sub info
+{
+	my ($class_or_obj, $param_ref) = @_;
+	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if ((defined $param_ref) and (ref $param_ref eq "HASH")) {
+		$params = %$param_ref;
+	}
+
+	# TODO add --format queries; until then no paramater processing is done
+	
+	# read buildah-info's JSON output with YAML::XS since YAML is a superset of JSON
+	my $yaml;
+	IPC::Run::run [prog("buildah"), "info"], \undef, \$yaml
+		or croak "info(): failed to run buildah - exit code $?" ;
+	my $info = YAML::XS::Load($yaml);
+	return $info;
+}
+
 # front end to "buildah tag" subcommand
 # usage: $cb->tag({image => "image_name"}, new_name, ...)
 # public class method
