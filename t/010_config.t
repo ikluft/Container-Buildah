@@ -13,6 +13,9 @@ use Data::Dumper;
 # run as "DEBUG=1 perl -Ilib t/010_config.t" to get debug output to STDERR
 my $debug_mode = exists $ENV{DEBUG};
 
+# number of digits in test count (for text formatting)
+my $test_digits = 2; # default to 2, count later
+
 # test Container::Buildah::prog()
 sub test_config
 {
@@ -27,7 +30,8 @@ sub test_config
 	# generate path string for test naming and error reporting
 	my $full_path = (@path?join("/", @path):"(*)")."->".$key
 		.($params->{get_config}?" from config":"");
-	my $name = sprintf("%02d %s", $number, (exists $params->{name}) ? $params->{name} : "check $full_path");
+	my $name = sprintf("%0".$test_digits."d %s",
+		$number, (exists $params->{name}) ? $params->{name} : "check $full_path");
 
 	# traverse path
 	my $diag;
@@ -294,7 +298,9 @@ my @config_tests = (
 	},
 );
 
-plan tests => count_tests(@config_tests);
+my $test_total = count_tests(@config_tests);
+plan tests => $test_total;
+$test_digits = length("".$test_total);
 
 # run tests
 my $cb = Container::Buildah->instance(($debug_mode ? (debug => 1) : ()));

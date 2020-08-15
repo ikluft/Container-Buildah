@@ -13,6 +13,9 @@ use Data::Dumper;
 # run as "DEBUG=1 perl -Ilib t/011_prog.t" to get debug output to STDERR
 my $debug_mode = exists $ENV{DEBUG};
 
+# number of digits in test count (for text formatting)
+my $test_digits = 2; # default to 2, count later
+
 # expand parameter variable names in parameters
 sub expand
 {
@@ -57,8 +60,9 @@ sub find_prog
 # test Container::Buildah::prog()
 sub test_prog
 {
+	my $cb = shift;
+	my $number = shift; #test number
 	my $params = shift; # hash structure of test parameters
-	my $cb = Container::Buildah->instance();
 	my $prog = $cb->{prog};
 	my $progname = expand($params, "progname");
 	my ($progpath, $exception);
@@ -82,7 +86,7 @@ sub test_prog
 	$exception = $@;
 
 	# test and report results
-	my $test_set = "path ".$params->{test_set_suffix};
+	my $test_set = sprintf("path %0".$test_digits."d", $number);
 	if ($debug_mode) {
 		if (exists $prog->{$progname}) {
 			warn "comparing ".$prog->{$progname}." eq $progpath";
@@ -173,7 +177,9 @@ my @prog_tests = (
 	},
 );
 
-plan tests => (scalar @prog_tests)*4;
+my $test_total = (scalar @prog_tests)*4;
+plan tests => $test_total;
+$test_digits = length("".$test_total);
 
 # config for testing
 Container::Buildah::init_config(
@@ -185,11 +191,8 @@ Container::Buildah::init_config(
 my $cb = Container::Buildah->instance(($debug_mode ? (debug => 1) : ()));
 Container::Buildah::prog(); # init cache
 {
-	my $count = 0;
-	foreach my $prog_test (@prog_tests) {
-		$count++;
-		$prog_test->{test_set_suffix} = $count;
-		test_prog($prog_test);
+	for (my $i=0; $i<scalar @prog_tests; $i++) {
+			test_prog($cb, $i+1, $prog_tests[$i]);
 	}
 }
 
