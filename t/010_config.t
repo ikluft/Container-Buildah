@@ -17,6 +17,7 @@ my $debug_mode = exists $ENV{DEBUG};
 sub test_config
 {
 	my $cb = shift;
+	my $number = shift;
 	my $params = shift; # hash structure of test parameters
 
 	# navigate down object's hash tree - code similar to Container::Buildah::get_config() tree traversal
@@ -26,7 +27,7 @@ sub test_config
 	# generate path string for test naming and error reporting
 	my $full_path = (@path?join("/", @path):"(*)")."->".$key
 		.($params->{get_config}?" from config":"");
-	my $name = $params->{name} // "check $full_path";
+	my $name = sprintf("%02d %s", $number, (exists $params->{name}) ? $params->{name} : "check $full_path");
 
 	# traverse path
 	my $diag;
@@ -299,14 +300,9 @@ plan tests => count_tests(@config_tests);
 my $cb = Container::Buildah->instance(($debug_mode ? (debug => 1) : ()));
 $debug_mode and warn Dumper(\@config_tests);
 {
-	my $count = 0;
-	foreach my $config_test (@config_tests) {
-		$count++;
-		$config_test->{test_set_suffix} = $count;
-		test_config($cb, $config_test);
+	for (my $i=0; $i<scalar @config_tests; $i++) {
+		test_config($cb, $i+1, $config_tests[$i]);
 	}
 }
-
-#$debug_mode and warn Dumper($cb);
 
 1;
