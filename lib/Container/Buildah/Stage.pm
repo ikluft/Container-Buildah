@@ -326,17 +326,15 @@ sub config
 
 	# process entrypoint, which has unique formatting
 	if (exists $params{entrypoint}) {
-		if (exists $params{entrypoint}) {
-			if (not ref $params{entrypoint}) {
-				push @args, "--entrypoint", $params{entrypoint};
-			} elsif (ref $params{entrypoint} eq "ARRAY") {
-				push @args, "--entrypoint", '[ "'.join('", "', @{$params{entrypoint}}).'" ]';
-			} else {
-				confess "config: parameter 'entrypoint' must be a scalar or array, got "
-					.(ref $params{entrypoint});
-			}
-			delete $params{entrypoint};
+		if (not ref $params{entrypoint}) {
+			push @args, "--entrypoint", $params{entrypoint};
+		} elsif (ref $params{entrypoint} eq "ARRAY") {
+			push @args, "--entrypoint", '[ "'.join('", "', @{$params{entrypoint}}).'" ]';
+		} else {
+			confess "config: parameter 'entrypoint' must be a scalar or array, got "
+				.(ref $params{entrypoint});
 		}
+		delete $params{entrypoint};
 	}
 
 	# error out if any unused parameters remain
