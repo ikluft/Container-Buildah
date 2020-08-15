@@ -16,4 +16,5 @@ equivalent_modules = Modern::Perl
 [Documentation::RequirePodSections]
 lib_sections = NAME | VERSION | SYNOPSIS | DESCRIPTION | BUGS AND LIMITATIONS | AUTHOR | COPYRIGHT AND LICENSE
 
-
+[Subroutines::ProhibitExcessComplexity]
+max_mccabe = 20

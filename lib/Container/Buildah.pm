@@ -227,7 +227,7 @@ sub get_config
 			return $node->{$key};
 		}
 
-		# if the value is a scalar, perform variable expansion
+		# if the value is scalar, perform variable expansion
 		return expand($node->{$key});
 	}
 	return;
@@ -381,6 +381,169 @@ sub get_arch
 	return $arch;
 }
 
+# parameter processing for buildah subcommand wrapper functions
+# private class function - used only by Container::Buildah and Container::Buildah::Stage
+#
+# usage: ($extracted, @args) = process_params({name => str, deflist => [ ... ], ... }, \%params);
+#   deflist can be any of: extract exclusive args_init args_flag args_flag_str args_str args_array args_list
+#
+# All the buildah subcommand wrapper functions use similar logic to process parameters, which is centralized here.
+# This builds an argument list to be used by a buildah subcommand.
+# Parameters are the same names as command-line arguments of buildah subcommands.
+#
+# TODO: reduce the McCabe complexity metric on this without making it less readable
+## no critic (Subroutines::ProhibitExcessComplexity)
+sub process_params
+{
+	my $defs = shift; # defintions of parameters to process
+	my $params = shift; # received parameters
+
+	# results to build and return
+	my @args; # argument list result to pass back
+	my %extracted; # parameters extracted by name
+
+	# get wrapper function name to use in error reporting
+	# use caller function name if not provided
+	my $name = $defs->{name} // (caller(0))[3];
+
+	# set aside parameters which caller wants extracted for further processing that we can't generalize here
+	if (exists $defs->{extract}) {
+		if (ref $defs->{extract} ne "ARRAY") {
+			confess "process_params parameter 'extract' must be an array, got ".(ref $defs->{extract});
+		}
+		foreach my $argname (@{$defs->{extract}}) {
+			if (exists $params->{$argname}) {
+				$extracted{$argname} = $params->{$argname};
+				delete $params->{$argname};
+			}
+		}
+	}
+
+	# initialize argument list
+	if (exists $defs->{args_init}) {
+		if (not ref $defs->{args_init}) {
+			push @args, $defs->{args_init};
+		} elsif (ref $defs->{args_init} eq "ARRAY") {
+			push @args, @{$defs->{args_init}};
+		} else {
+			confess "process_params parameter 'args_init' must be scalar or array, got ".(ref $defs->{args_init});
+		}
+	}
+
+	# check for exclusive parameters - if any are present, it must be the only parameter
+	if (exists $defs->{exclusive}) {
+		if (ref $defs->{exclusive} ne "ARRAY") {
+			confess "process_params parameter 'exclusive' must be an array, got ".(ref $defs->{exclusive});
+		}
+		foreach my $argname (@{$defs->{exclusive}}) {
+			if (exists $params->{$argname}) {
+				if (scalar keys %$params > 1) {
+					croak "$name parameter '".$argname."' is exclusive - cannot be passed with other parameters";
+				}
+			}
+		}
+	}
+
+	# process arguments which are boolean flags, excluding those requiring true/false as a string
+	if (exists $defs->{args_flag}) {
+		if (ref $defs->{args_flag} ne "ARRAY") {
+			confess "process_params parameter 'args_flag' must be an array, got ".(ref $defs->{args_flag});
+		}
+		foreach my $argname (@{$defs->{args_flag}}) {
+			if (exists $params->{$argname}) {
+				if (ref $params->{$argname}) {
+					confess "$name parameter '".$argname."' must be scalar, got ".(ref $params->{$argname});
+				}
+				push @args, "--$argname";
+				delete $params->{$argname};
+			}
+		}
+	}
+
+	# process arguments which are boolean flags, requiring true/false as a string
+	if (exists $defs->{args_flag_str}) {
+		if (ref $defs->{args_flag_str} ne "ARRAY") {
+			confess "process_params parameter 'args_flag_str' must be an array, got ".(ref $defs->{args_flag_str});
+		}
+		foreach my $argname (@{$defs->{args_flag_str}}) {
+			if (exists $params->{$argname}) {
+				if (ref $params->{$argname}) {
+					confess "$name parameter '".$argname."' must be scalar, got ".(ref $params->{$argname});
+				}
+				if ($params->{$argname} ne "true" and $params->{$argname} ne "false") {
+					croak "$name parameter '".$argname."' must be 'true' or 'false', got '".$params->{$argname}."'";
+				}
+				push @args, "--$argname", $params->{$argname};
+				delete $params->{$argname};
+			}
+		}
+	}
+
+	# process arguments which take a single string
+	if (exists $defs->{args_str}) {
+		if (ref $defs->{args_str} ne "ARRAY") {
+			confess "process_params parameter 'args_str' must be an array, got ".(ref $defs->{args_str});
+		}
+		foreach my $argname (@{$defs->{args_str}}) {
+			if (exists $params->{$argname}) {
+				if (ref $params->{$argname}) {
+					confess "$name parameter '".$argname."' must be scalar, got ".(ref $params->{$argname});
+				}
+				push @args, "--$argname", $params->{$argname};
+				delete $params->{$argname};
+			}
+		}
+	}
+
+	# process arguments which take an array (converted to multiple occurrences on the command line)
+	if (exists $defs->{args_array}) {
+		if (ref $defs->{args_array} ne "ARRAY") {
+			confess "process_params parameter 'args_array' must be an array, got ".(ref $defs->{args_array});
+		}
+		foreach my $argname (@{$defs->{args_array}}) {
+			if (exists $params->{$argname}) {
+				if (not ref $params->{$argname}) {
+					push @args, "--$argname", $params->{$argname};
+				} elsif (ref $params->{$argname} eq "ARRAY") {
+					foreach my $entry (@{$params->{$argname}}) {
+						push @args, "--$argname", $entry;
+					}
+				} else {
+					confess "$name parameter '".$argname."' must be scalar or array, got ".(ref $params->{$argname});
+				}
+				delete $params->{$argname};
+			}
+		}
+	}
+
+	# process arguments which are formatted as a list on the command-line
+	# (this is only used by buildah-config's entrypoint parameter)
+	if (exists $defs->{args_list}) {
+		if (ref $defs->{args_list} ne "ARRAY") {
+			confess "process_params parameter 'args_list' must be an array, got ".(ref $defs->{args_list});
+		}
+		foreach my $argname (@{$defs->{args_list}}) {
+			if (not ref $params->{$argname}) {
+				push @args, "--$argname", $params->{$argname};
+			} elsif (ref $params->{$argname} eq "ARRAY") {
+				push @args, "--$argname", '[ "'.join('", "', @{$params->{$argname}}).'" ]';
+			} else {
+				confess "$name parameter '$argname' must be scalar or array, got ".(ref $params->{$argname});
+			}
+			delete $params->{$argname};
+		}
+	}
+
+	# error out if any unexpected parameters remain
+	if (%$params) {
+		confess "$name received undefined parameters: ".(join(" ", keys %$params));
+	}
+
+	# return processed argument list
+	return (\%extracted, @args);
+}
+## use critic (Subroutines::ProhibitExcessComplexity)
+
 #
 # exception handling
 #
@@ -496,7 +659,7 @@ sub info
 		$params = %$param_ref;
 	}
 
-	# TODO add --format queries; until then no paramater processing is done
+	# TODO add --format queries; until then no parameter processing is done
 	
 	# read buildah-info's JSON output with YAML::XS since YAML is a superset of JSON
 	my $yaml;
@@ -545,7 +708,7 @@ sub rm
 		$params = shift @containers;
 	}
 
-	# if "all" parameter is provides, remove all containers
+	# if "all" parameter is provided, remove all containers
 	if ((exists $params->{all}) and $params->{all}) {
 		buildah("rm", "--all");
 		return;
