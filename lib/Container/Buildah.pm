@@ -282,32 +282,6 @@ sub progpath
 	return $progpath;
 }
 
-# get file modification timestamp
-# private class function
-sub ftime
-{
-	my $file = shift;
-	if (not  -f $file ) {
-		return;
-	}
-	my $fstat = stat $file;
-	return $fstat->mtime;
-}
-
-# check if this script is newer than a deliverable file, or if the deliverable doesn't exist
-# private class function
-sub check_deliverable
-{
-	my $depfile = shift;
-	if (not  -f $depfile) {
-		return "does not exist";
-	}
-	if (ftime(progpath()) > ftime($depfile)) {
-		return "program modified";
-	}
-	return;
-}
-
 # generate name of environment variable for where to find a command
 # this is broken out as a separate function for tests to use it
 # private class function

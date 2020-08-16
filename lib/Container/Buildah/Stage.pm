@@ -522,6 +522,32 @@ sub tarball
 	return Container::Buildah->get_config("basename")."_".$stage_name.".tar.bz2";
 }
 
+# get file modification timestamp
+# private class function
+sub ftime
+{
+	my $file = shift;
+	if (not  -f $file ) {
+		return;
+	}
+	my $fstat = stat $file;
+	return $fstat->mtime;
+}
+
+# check if this script is newer than a deliverable file, or if the deliverable doesn't exist
+# private class function
+sub check_deliverable
+{
+	my $depfile = shift;
+	if (not  -f $depfile) {
+		return "does not exist";
+	}
+	if (ftime(progpath()) > ftime($depfile)) {
+		return "program modified";
+	}
+	return;
+}
+
 # generic external wrapper function for all stages
 # mount the container namespace and enter it to run the custom stage build function
 # private instance method
@@ -536,7 +562,7 @@ sub launch_namespace
 		my $tarball_out = $self->tarball;
 
 		# check if deliverable tarball file already exists
-		my $tarball_result = Container::Buildah::check_deliverable($tarball_out);
+		my $tarball_result = check_deliverable($tarball_out);
 		if (not $tarball_result) {
 			# skip this stage because the deliverable already exists and is up-to-date
 			$self->status("build tarball skipped - deliverable up-to-date $tarball_out");
