@@ -102,11 +102,11 @@ my @tests = (
 		],
 	},
 	{
-		defs => {args_init => {}},
+		defs => {arg_init => {}},
 		tests => [
 			{
-				name => "wrong type for args_init",
-				expected_exception => "process_params parameter 'args_init' must be scalar or array, got HASH",
+				name => "wrong type for arg_init",
+				expected_exception => "process_params parameter 'arg_init' must be scalar or array, got HASH",
 			},
 		],
 	},
@@ -120,47 +120,47 @@ my @tests = (
 		],
 	},
 	{
-		defs => {args_flag => {}},
+		defs => {arg_flag => {}},
 		tests => [
 			{
-				name => "wrong type for args_flag",
-				expected_exception => "process_params parameter 'args_flag' must be an array, got HASH",
+				name => "wrong type for arg_flag",
+				expected_exception => "process_params parameter 'arg_flag' must be an array, got HASH",
 			},
 		],
 	},
 	{
-		defs => {args_flag_str => {}},
+		defs => {arg_flag_str => {}},
 		tests => [
 			{
-				name => "wrong type for args_flag_str",
-				expected_exception => "process_params parameter 'args_flag_str' must be an array, got HASH",
+				name => "wrong type for arg_flag_str",
+				expected_exception => "process_params parameter 'arg_flag_str' must be an array, got HASH",
 			},
 		],
 	},
 	{
-		defs => {args_str => {}},
+		defs => {arg_str => {}},
 		tests => [
 			{
-				name => "wrong type for args_str",
-				expected_exception => "process_params parameter 'args_str' must be an array, got HASH",
+				name => "wrong type for arg_str",
+				expected_exception => "process_params parameter 'arg_str' must be an array, got HASH",
 			},
 		],
 	},
 	{
-		defs => {args_array => {}},
+		defs => {arg_array => {}},
 		tests => [
 			{
-				name => "wrong type for args_array",
-				expected_exception => "process_params parameter 'args_array' must be an array, got HASH",
+				name => "wrong type for arg_array",
+				expected_exception => "process_params parameter 'arg_array' must be an array, got HASH",
 			},
 		],
 	},
 	{
-		defs => {args_list => {}},
+		defs => {arg_list => {}},
 		tests => [
 			{
-				name => "wrong type for args_list",
-				expected_exception => "process_params parameter 'args_list' must be an array, got HASH",
+				name => "wrong type for arg_list",
+				expected_exception => "process_params parameter 'arg_list' must be an array, got HASH",
 			},
 		],
 	},
@@ -209,16 +209,16 @@ my @tests = (
 		],
 	},
 	{
-		defs => {args_init => [qw(--add-history)]},
+		defs => {arg_init => [qw(--add-history)]},
 		tests => [
 			{
-				name => "args_init",
+				name => "arg_init",
 				args => [qw(--add-history)],
 			},
 		],
 	},
 	{
-		defs => {args_flag => [qw(all)], exclusive => [qw(all)]},
+		defs => {arg_flag => [qw(all)], exclusive => [qw(all)]},
 		tests => [
 			{
 				name => "exclusive flag",
@@ -233,7 +233,7 @@ my @tests = (
 		],
 	},
 	{
-		defs => {args_flag_str => [qw(flag)]},
+		defs => {arg_flag_str => [qw(flag)]},
 		tests => [
 			{
 				name => "flag string true",
@@ -253,7 +253,7 @@ my @tests = (
 		],
 	},
 	{
-		defs => {args_str => [qw(opt1 opt2)]},
+		defs => {arg_str => [qw(opt1 opt2)]},
 		tests => [
 			{
 				name => "string option",
@@ -273,7 +273,7 @@ my @tests = (
 		],
 	},
 	{
-		defs => {args_array => [qw(opt)]},
+		defs => {arg_array => [qw(opt)]},
 		tests => [
 			{
 				name => "array",
@@ -293,7 +293,7 @@ my @tests = (
 		],
 	},
 	{
-		defs => {args_list => [qw(list)]},
+		defs => {arg_list => [qw(list)]},
 		tests => [
 			{
 				name => "list",
