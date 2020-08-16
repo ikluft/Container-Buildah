@@ -13,6 +13,7 @@ use autodie;
 use Carp qw(croak confess);
 use Cwd;
 use Readonly;
+use File::stat;
 use Container::Buildah;
 
 Readonly::Scalar my $mnt_env_name => "BUILDAHUTIL_MOUNT";
@@ -508,8 +509,17 @@ sub rmcontainer
 
 	Container::Buildah::cmd({name => "rmcontainer", nonzero => sub {},
 		zero => sub {$cb->rm($self->container_name);}},
-		Container::Buildah::prog("buildah")." inspect ".$self->container_name.' >/dev/null 2>&1');
+		Container::Buildah::Subcommand::prog("buildah")." inspect ".$self->container_name.' >/dev/null 2>&1');
 	return;
+}
+
+# get path to the executing script
+# used for file dependency checks and re-running the script in a container namespace
+# private class function
+sub progpath
+{
+	state $progpath = "$FindBin::Bin/$FindBin::Script";
+	return $progpath;
 }
 
 # derive tarball name for stage which produces it
@@ -588,7 +598,7 @@ sub launch_namespace
 	# run the builder script in the container
 	my $cb = Container::Buildah->instance();
 	$cb->unshare({container => $self->container_name, envname => $mnt_env_name},
-		Container::Buildah::progpath(), "--internal=".$self->get_name,
+		progpath(), "--internal=".$self->get_name,
 		(Container::Buildah::get_debug() ? "--debug" : ()));
 
 	# commit the container if configured

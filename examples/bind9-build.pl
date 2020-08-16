@@ -12,7 +12,7 @@
 
 use strict;
 use warnings;
-use Modern::Perl qw(2017); # require security updates
+use Modern::Perl qw(2018); # require security updates
 use utf8;
 use autodie;
 
