@@ -31,7 +31,7 @@ sub setup_delegation
 }
 
 #
-# parameter processing functions
+# parameter processing functions used by process_params()
 #
 
 # params_extract - set aside parameters which caller wants extracted for further processing that we can't generalize
@@ -291,7 +291,6 @@ sub envprog
 
 # look up secure program path
 # private class function
-## no critic (RequireFinalReturn)
 sub prog
 {
 	my $progname = shift;
@@ -320,17 +319,21 @@ sub prog
 	}
 
 	# search paths in order emphasizing recent Linux Filesystem that prefers /usr/bin, then Unix PATH order
+	my $found;
 	for my $path ("/usr/bin", "/sbin", "/usr/sbin", "/bin") {
 		if (-x "$path/$progname") {
 			$prog->{$progname} = "$path/$progname";
-			return $prog->{$progname};
+			$found = $prog->{$progname};
+			last;
 		}
 	}
 
-	# if we get here, we didn't find a known secure location for the program
-	croak "unknown secure location for $progname - install it or set $envprog to point to it";
+	# return path, or error if we didn't find a known secure location for the program
+	if (not defined $found) {
+		croak "unknown secure location for $progname - install it or set $envprog to point to it";
+	}
+	return $found
 }
-## use critic
 
 #
 # external command functions
