@@ -12,6 +12,7 @@ package Container::Buildah::Subcommand;
 use autodie;
 use Carp qw(croak confess);
 use Readonly;
+use IPC::Run;
 use Container::Buildah;
 use Data::Dumper;
 
@@ -76,7 +77,7 @@ sub param_arg_init
 # private class function
 sub param_exclusive
 {
-	my ($name, $defs, $params) = @_;
+	my ($name, $defs, $params, $extract_ref) = @_;
 
 	if (exists $defs->{exclusive}) {
 		if (ref $defs->{exclusive} ne "ARRAY") {
@@ -84,9 +85,13 @@ sub param_exclusive
 		}
 		foreach my $argname (@{$defs->{exclusive}}) {
 			if (exists $params->{$argname}) {
+				# if other flags exist with an exclusive flag, that's an error
 				if (scalar keys %$params > 1) {
 					croak "$name parameter '".$argname."' is exclusive - cannot be passed with other parameters";
 				}
+
+				# exclusive flag saved in extracted fields so caller can detect it
+				$extract_ref->{$argname} = $params->{$argname};
 			}
 		}
 	}
@@ -221,7 +226,7 @@ sub param_arg_list
 # parameter processing for buildah subcommand wrapper functions
 # private class function - used only by Container::Buildah and Container::Buildah::Stage
 #
-# usage: ($extracted, @args) = process_params({name => str, deflist => [ ... ], ... }, \%params);
+# usage: ($extract, @args) = process_params({name => str, deflist => [ ... ], ... }, \%params);
 #   deflist can be any of: extract exclusive arg_init arg_flag arg_flag_str arg_str arg_array arg_list
 #
 # All the buildah subcommand wrapper functions use similar logic to process parameters, which is centralized here.
@@ -247,7 +252,7 @@ sub process_params
 	param_arg_init($defs, \@args);
 
 	# check for exclusive parameters - if any are present, it must be the only parameter
-	param_exclusive($name, $defs, $params);
+	param_exclusive($name, $defs, $params, \%extracted);
 
 	# process arguments which are boolean flags, excluding those requiring true/false as a string
 	param_arg_flag($name, $defs, $params, \@args);
@@ -436,25 +441,20 @@ sub info
 # public class method
 sub tag
 {
-	my ($class_or_obj, @tags) = @_;
+	my ($class_or_obj, @in_args) = @_;
 	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $params = {};
-	if (ref $tags[0] eq "HASH") {
-		$params = shift @tags;
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
 	}
 
-	# get image name parameter
-	my $image = $params->{image}
+	# process parameters
+	my ($extract, @args) = process_params({name => 'tag', extract => [qw(image)]}, $params);
+	my $image = $extract->{image}
 		or croak "tag: image parameter required";
-	delete $params->{image};
-
-	# error out if any unexpected parameters remain
-	if (%$params) {
-		confess "tag received undefined parameters '".(join(" ", keys %$params));
-	}
 
 	# run buildah-tag
-	buildah("tag", $image, @tags);
+	buildah("tag", $image, @in_args);
 	return;
 }
 
@@ -463,21 +463,19 @@ sub tag
 #    or: $cb->rm({all => 1})
 sub rm
 {
-	my ($class_or_obj, @containers) = @_;
+	my ($class_or_obj, @in_args) = @_;
 	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $params = {};
-	if (ref $containers[0] eq "HASH") {
-		$params = shift @containers;
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
 	}
 
-	# if "all" parameter is provided, remove all containers
-	if ((exists $params->{all}) and $params->{all}) {
-		buildah("rm", "--all");
-		return;
-	}
+	# process parameters
+	my ($extract, @args) = process_params({name => 'rm', arg_flag => [qw(all)], exclusive => [qw(all)]}, $params);
 
 	# remove containers listed in arguments
-	buildah("rm", @containers);
+	# buildah will error out if --all is provided with container names/ids
+	buildah("rm", @args, @in_args);
 	return;
 }
 
@@ -487,33 +485,20 @@ sub rm
 #    or: $cb->rmi({all => 1})
 sub rmi
 {
-	my ($class_or_obj, @images) = @_;
+	my ($class_or_obj, @in_args) = @_;
 	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $params = {};
-	if (ref $images[0] eq "HASH") {
-		$params = shift @images;
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
 	}
 
-	# if "all" parameter is provides, remove all images
-	if ((exists $params->{all}) and $params->{all}) {
-		buildah("rmi", "--all");
-		return;
-	}
-
-	# if "prune" parameter is provides, remove all images
-	if ((exists $params->{prune}) and $params->{prune}) {
-		buildah("rmi", "--prune");
-		return;
-	}
-
-	# process force parameter
-	my @args;
-	if ((exists $params->{force}) and $params->{force}) {
-		push @args, "--force";
-	}
+	# process parameters
+	my ($extract, @args) = process_params({name => 'rmi', arg_flag => [qw(all prune force)],
+		exclusive => [qw(all prune)]}, $params);
 
 	# remove images listed in arguments
-	buildah("rmi", @args, @images);
+	# buildah will error out if --all or --prune are provided with image names/ids
+	buildah("rmi", @args, @in_args);
 	return;
 }
 
@@ -527,30 +512,25 @@ sub unshare
 	if (ref $in_args[0] eq "HASH") {
 		$params = shift @in_args;
 	}
-	
-	# construct arguments for buildah-unshare command
-	my @args;
-	if (exists $params->{container}) {
-		if (exists $params->{envname}) {
-			push @args, "--mount", $params->{envname}."=".$params->{container};
-			delete $params->{envname};
-		} else {
-			push @args, "--mount", $params->{container};
-		}
-		delete $params->{container};
-	}
 
-	# error out if any unexpected parameters remain
-	if (%$params) {
-		confess "run: received undefined parameters '".(join(" ", keys %$params));
+	# process parameters
+	my ($extract, @args) = process_params({name => 'unshare', extract => [qw(container envname)],
+		arg_str => [qw(mount)]}, $params);
+
+	# construct arguments for buildah-unshare command
+	# note: --mount may be specified directly or constructed from container/envname - use only one way, not both
+	if (exists $extract->{container}) {
+		if (exists $extract->{envname}) {
+			push @args, "--mount", $extract->{envname}."=".$extract->{container};
+		} else {
+			push @args, "--mount", $extract->{container};
+		}
 	}
 
 	# run buildah-unshare command
 	buildah("unshare", @args, "--", @in_args);
 	return;
 }
-
-
 
 1;
 
