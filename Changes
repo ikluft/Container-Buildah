@@ -14,6 +14,7 @@ add POD docs
 
 [MINOR]
 code cleanup for Perl::Critic compliance at severity 3 (harsh) level
+split off Container::Buildah::Stage and Container::Buildah::Subcommand classes to their own files
 implement buildah subcommand wrapper functions
 
 [REVISION]

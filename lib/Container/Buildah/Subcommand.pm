@@ -11,25 +11,19 @@ package Container::Buildah::Subcommand;
 
 use autodie;
 use Carp qw(croak confess);
-use Readonly;
 use IPC::Run;
-use Container::Buildah;
 use Data::Dumper;
+require Container::Buildah;
 
-# list of utility and subcommand functions which Container::Buildah delegates to this class if called there
-Readonly::Array my @delegated_functions => qw(process_params envprog prog cmd buildah bud containers images info inspect
+# exports
+use Exporter qw(import);
+our @EXPORT_OK   = qw(process_params envprog prog bud containers images info inspect
 	mount pull push rename rm rmi tag umount unshare version);
-
-# export subcommand wrapper functions to Container::Buildah so it forwards these calls here
-sub setup_delegation
-{
-	# export delegated functions to Container::Buildah
-	foreach my $funcname (@delegated_functions) {
-		no strict 'refs'; ## no critic (ProhibitNoStrict)
-		*{ "Container::Buildah::$funcname" } = \&$funcname;
-	}
-	return;
-}
+our %EXPORT_TAGS = (
+	all => [qw(process_params envprog prog bud containers images info inspect mount pull push
+		rename rm rmi tag umount unshare version)],
+	utility => [qw(process_params prog)],
+);
 
 #
 # parameter processing functions used by process_params()
@@ -299,12 +293,12 @@ sub envprog
 sub prog
 {
 	my $progname = shift;
-	my $self = Container::Buildah->instance();
+	my $cb = Container::Buildah->instance();
 
-	if (!exists $self->{prog}) {
-		$self->{prog} = {};
+	if (!exists $cb->{prog}) {
+		$cb->{prog} = {};
 	}
-	my $prog = $self->{prog};
+	my $prog = $cb->{prog};
 
 	# call with undef to initialize cache (mainly needed for testing because normal use will auto-create it)
 	if (!defined $progname) {
@@ -345,15 +339,16 @@ sub prog
 #
 
 # run a command and report errors
-# private class function
+# private class method
 sub cmd
 {
-	my ($opts, @in_args) = @_;
+	my ($class_or_obj, $opts, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $name = (exists $opts->{name}) ? $opts->{name} : "cmd";
 	no autodie qw(system);
 
 	eval {
-		Container::Buildah::debug "cmd $name ".join(" ", @in_args);
+		$cb->debug("cmd $name ".join(" ", @in_args));
 		system(@in_args);
 		if ($? == -1) {
 			confess "failed to execute command (".join(" ", @in_args)."): $!";
@@ -384,10 +379,11 @@ sub cmd
 # public class function
 sub buildah
 {
-	my @in_args = @_;
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 
-	Container::Buildah::debug "buildah: args = ".join(" ", @in_args);
-	cmd({name => "buildah"}, prog("buildah"), @in_args);
+	$cb->debug("buildah: args = ".join(" ", @in_args));
+	$cb->cmd({name => "buildah"}, prog("buildah"), @in_args);
 	return;
 }
 
@@ -420,7 +416,7 @@ sub buildah
 sub info
 {
 	my ($class_or_obj, $param_ref) = @_;
-	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $params = {};
 	if ((defined $param_ref) and (ref $param_ref eq "HASH")) {
 		$params = %$param_ref;
@@ -442,7 +438,7 @@ sub info
 sub tag
 {
 	my ($class_or_obj, @in_args) = @_;
-	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $params = {};
 	if (ref $in_args[0] eq "HASH") {
 		$params = shift @in_args;
@@ -454,7 +450,7 @@ sub tag
 		or croak "tag: image parameter required";
 
 	# run buildah-tag
-	buildah("tag", $image, @in_args);
+	$cb->buildah("tag", $image, @in_args);
 	return;
 }
 
@@ -464,7 +460,7 @@ sub tag
 sub rm
 {
 	my ($class_or_obj, @in_args) = @_;
-	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $params = {};
 	if (ref $in_args[0] eq "HASH") {
 		$params = shift @in_args;
@@ -475,7 +471,7 @@ sub rm
 
 	# remove containers listed in arguments
 	# buildah will error out if --all is provided with container names/ids
-	buildah("rm", @args, @in_args);
+	$cb->buildah("rm", @args, @in_args);
 	return;
 }
 
@@ -486,7 +482,7 @@ sub rm
 sub rmi
 {
 	my ($class_or_obj, @in_args) = @_;
-	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $params = {};
 	if (ref $in_args[0] eq "HASH") {
 		$params = shift @in_args;
@@ -498,7 +494,7 @@ sub rmi
 
 	# remove images listed in arguments
 	# buildah will error out if --all or --prune are provided with image names/ids
-	buildah("rmi", @args, @in_args);
+	$cb->buildah("rmi", @args, @in_args);
 	return;
 }
 
@@ -507,7 +503,7 @@ sub rmi
 sub unshare
 {
 	my ($class_or_obj, @in_args) = @_;
-	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $params = {};
 	if (ref $in_args[0] eq "HASH") {
 		$params = shift @in_args;
@@ -528,7 +524,7 @@ sub unshare
 	}
 
 	# run buildah-unshare command
-	buildah("unshare", @args, "--", @in_args);
+	$cb->buildah("unshare", @args, "--", @in_args);
 	return;
 }
 

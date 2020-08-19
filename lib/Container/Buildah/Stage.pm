@@ -14,7 +14,12 @@ use Carp qw(croak confess);
 use Cwd;
 use Readonly;
 use File::stat;
-use Container::Buildah;
+use FindBin;
+
+# import from Container::Buildah::Subcommand after BEGIN phase (where 'use' takes place), to avoid conflicts
+require Container::Buildah;
+require Container::Buildah::Subcommand;
+Container::Buildah::Subcommand->import(qw(:utility));
 
 Readonly::Scalar my $mnt_env_name => "BUILDAHUTIL_MOUNT";
 Readonly::Array my @auto_accessors => qw(commit consumes depends from func_deps func_exec mnt name produces
@@ -226,7 +231,8 @@ sub add
 	}
 
 	# run command
-	Container::Buildah::buildah("add", @args, $self->container_name, @paths, ($dest ? ($dest) : ()));
+	my $cb = Container::Buildah->instance();
+	$cb->buildah("add", @args, $self->container_name, @paths, ($dest ? ($dest) : ()));
 	return;
 }
 
@@ -277,7 +283,8 @@ sub commit
 	}
 
 	# do commit
-	Container::Buildah::buildah("commit", @args, $self->container_name, $image_name);
+	my $cb = Container::Buildah->instance();
+	$cb->buildah("commit", @args, $self->container_name, $image_name);
 	return;
 }
 
@@ -344,7 +351,8 @@ sub config
 	}
 
 	# run command
-	Container::Buildah::buildah("config", @args, $self->container_name);
+	my $cb = Container::Buildah->instance();
+	$cb->buildah("config", @args, $self->container_name);
 	return;
 }
 
@@ -384,7 +392,8 @@ sub copy
 	}
 
 	# run command
-	Container::Buildah::buildah("copy", @args, $self->container_name, @paths, ($dest ? ($dest) : ()));
+	my $cb = Container::Buildah->instance();
+	$cb->buildah("copy", @args, $self->container_name, @paths, ($dest ? ($dest) : ()));
 	return;
 }
 
@@ -480,7 +489,8 @@ sub run
 		}
 
 		# run command
-		Container::Buildah::buildah("run", @args, $self->container_name, '--', @$command);
+		my $cb = Container::Buildah->instance();
+		$cb->buildah("run", @args, $self->container_name, '--', @$command);
 	}
 	return;
 }
@@ -507,9 +517,9 @@ sub rmcontainer
 	my $self = shift;
 	my $cb = Container::Buildah->instance();
 
-	Container::Buildah::cmd({name => "rmcontainer", nonzero => sub {},
+	$cb->cmd({name => "rmcontainer", nonzero => sub {},
 		zero => sub {$cb->rm($self->container_name);}},
-		Container::Buildah::Subcommand::prog("buildah")." inspect ".$self->container_name.' >/dev/null 2>&1');
+		prog("buildah")." inspect ".$self->container_name.' >/dev/null 2>&1');
 	return;
 }
 
@@ -593,10 +603,10 @@ sub launch_namespace
 	$self->rmcontainer;
 
 	# get the base image
-	Container::Buildah::buildah("from", "--name=".$self->container_name, $self->get_from);
+	my $cb = Container::Buildah->instance();
+	$cb->buildah("from", "--name=".$self->container_name, $self->get_from);
 
 	# run the builder script in the container
-	my $cb = Container::Buildah->instance();
 	$cb->unshare({container => $self->container_name, envname => $mnt_env_name},
 		progpath(), "--internal=".$self->get_name,
 		(Container::Buildah::get_debug() ? "--debug" : ()));
@@ -693,6 +703,7 @@ sub produce
 	if (defined $produces) {
 		if (ref $produces eq "ARRAY") {
 			my $tarball_out = $self->tarball;
+			my $cb = Container::Buildah->instance();
 			my @product_dirs;
 			foreach my $product (@$produces) {
 				push @product_dirs, dropslash($product);
@@ -709,7 +720,7 @@ sub produce
 				.join(" ", @product_dirs));
 			# ignore tar exit code 1 - appears to be unavoidable and meaningless when building on an overlayfs
 			my $nonzero = sub { my $ret=shift; if ($ret>1) {croak "tar exited with code $ret";}};
-			Container::Buildah::cmd({name => "tar", nonzero => $nonzero}, "/usr/bin/tar", "--create", "--bzip2",
+			$cb->cmd({name => "tar", nonzero => $nonzero}, "/usr/bin/tar", "--create", "--bzip2",
 				"--preserve-permissions", "--sparse", "--file=".$tarball_out, "--directory=".$self->get_mnt, @product_dirs);
 		} else {
 			croak "product: stage->consumes was set but not an array ref";

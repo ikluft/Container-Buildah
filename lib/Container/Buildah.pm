@@ -12,26 +12,30 @@ package Container::Buildah;
 use autodie;
 use Carp qw(croak confess);
 use Exporter;
+use Readonly;
 use Getopt::Long;
 use Data::Dumper;
 use IO::Handle;
 use IPC::Run;
 use File::Slurp;
-use FindBin;
 use File::Sync qw(sync);
 use Algorithm::Dependency;
 use Algorithm::Dependency::Source::HoA;
 use YAML::XS;
 use Template;
+use parent qw(Class::Singleton);
 
-use parent qw(Class::Singleton Exporter);
+# import from Container::Buildah::Subcommand after BEGIN phase (where 'use' takes place), to avoid conflicts
+require Container::Buildah::Subcommand;
+Container::Buildah::Subcommand->import(qw(:all));
+
+# methods delegated to Container::Buildah::Subcommand that need to be imported into this class' symbol table
+# (methods should not be handled by Exporter - we are doing the same thing but keeping it private to the class)
+Readonly::Array my @subcommand_methods => qw(cmd buildah);
 
 #
 # initialize environment
 #
-
-# allow export of class functions
-our @EXPORT_OK = qw(buildah);
 
 # globals
 my $debug=0;
@@ -100,7 +104,10 @@ sub _new_instance
 
 	# delegate subcommand wrapper functions to Container::Buildah::Subcommand
 	require Container::Buildah::Subcommand;
-	Container::Buildah::Subcommand::setup_delegation();
+	foreach my $methodname (@subcommand_methods) {
+		no strict 'refs'; ## no critic (ProhibitNoStrict)
+		*{$methodname} = \&{"Container::Buildah::Subcommand::$methodname"};
+	}
 
 	# Template setup
 	$self->{template} = Template->new(\%template_config);
