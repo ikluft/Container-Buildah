@@ -17,11 +17,9 @@ require Container::Buildah;
 
 # exports
 use Exporter qw(import);
-our @EXPORT_OK   = qw(process_params envprog prog bud containers images info inspect
-	mount pull push rename rm rmi tag umount unshare version);
+our @EXPORT_OK   = qw(process_params envprog prog);
 our %EXPORT_TAGS = (
-	all => [qw(process_params envprog prog bud containers images info inspect mount pull push
-		rename rm rmi tag umount unshare version)],
+	all => [qw(process_params envprog prog)],
 	utility => [qw(process_params prog)],
 );
 
@@ -376,7 +374,7 @@ sub cmd
 }
 
 # run buildah command with parameters
-# public class function
+# public class method
 sub buildah
 {
 	my ($class_or_obj, @in_args) = @_;
@@ -413,6 +411,7 @@ sub buildah
 # front end to "buildah info" subcommand
 # usage: $cb->info([{format => format}])
 # this uses YAML::XS with the assumption that buildah-info's JSON output is a proper subset of YAML
+# public class method
 sub info
 {
 	my ($class_or_obj, $param_ref) = @_;
@@ -457,6 +456,7 @@ sub tag
 # front end to "buildah rm" (remove container) subcommand
 # usage: $cb->rm(container, [...])
 #    or: $cb->rm({all => 1})
+# public class method
 sub rm
 {
 	my ($class_or_obj, @in_args) = @_;
@@ -479,6 +479,7 @@ sub rm
 # usage: $cb->rmi([{force => 1},] image, [...])
 #    or: $cb->rmi({prune => 1})
 #    or: $cb->rmi({all => 1})
+# public class method
 sub rmi
 {
 	my ($class_or_obj, @in_args) = @_;
@@ -500,6 +501,7 @@ sub rmi
 
 # front end to "buildah unshare" (user namespace share) subcommand
 # usage: $cb->unshare({container => "name_or_id", [envname => "env_var_name"]}, "cmd", "args", ... )
+# public class method
 sub unshare
 {
 	my ($class_or_obj, @in_args) = @_;
