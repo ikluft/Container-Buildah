@@ -17,11 +17,7 @@ require Container::Buildah;
 
 # exports
 use Exporter qw(import);
-our @EXPORT_OK   = qw(process_params envprog prog);
-our %EXPORT_TAGS = (
-	all => [qw(process_params envprog prog)],
-	utility => [qw(process_params prog)],
-);
+our @EXPORT_OK   = qw(process_params prog);
 
 #
 # parameter processing functions used by process_params()

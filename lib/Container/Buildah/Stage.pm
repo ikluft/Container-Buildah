@@ -19,7 +19,7 @@ use FindBin;
 # import from Container::Buildah::Subcommand after BEGIN phase (where 'use' takes place), to avoid conflicts
 require Container::Buildah;
 require Container::Buildah::Subcommand;
-Container::Buildah::Subcommand->import(qw(:utility));
+Container::Buildah::Subcommand->import(qw(process_params prog));
 
 Readonly::Scalar my $mnt_env_name => "BUILDAHUTIL_MOUNT";
 Readonly::Array my @auto_accessors => qw(commit consumes depends from func_deps func_exec mnt name produces

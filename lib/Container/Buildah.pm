@@ -27,7 +27,7 @@ use parent qw(Class::Singleton);
 
 # import from Container::Buildah::Subcommand after BEGIN phase (where 'use' takes place), to avoid conflicts
 require Container::Buildah::Subcommand;
-Container::Buildah::Subcommand->import(qw(:all));
+Container::Buildah::Subcommand->import(qw(process_params prog));
 
 # methods delegated to Container::Buildah::Subcommand that need to be imported into this class' symbol table
 # (methods should not be handled by Exporter - we are doing the same thing but keeping it private to the class)

@@ -7,6 +7,7 @@ use autodie;
 
 use Test::More;
 use Container::Buildah;
+use Container::Buildah::Subcommand;
 use Data::Dumper;
 
 # detect debug mode from environment
@@ -105,7 +106,7 @@ sub test_prog
 
 		# verify program is in expected location
 		my $expected_path = find_prog($progname);
-		my $envprog = Container::Buildah::envprog($progname);
+		my $envprog = Container::Buildah::Subcommand::envprog($progname);
 		my $reason = "default";
 		if (exists $ENV{$envprog} and -x $ENV{$envprog}) {
 			if (-x $expected_path) {
