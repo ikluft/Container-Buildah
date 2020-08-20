@@ -15,6 +15,7 @@ nytprof.out
 
 # Dizt::Zilla
 /.build/
+dzil.spec
 
 # Module::Build
 _build/
