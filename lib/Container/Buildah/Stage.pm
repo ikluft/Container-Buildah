@@ -547,24 +547,60 @@ sub tarball
 sub ftime
 {
 	my $file = shift;
-	if (not  -f $file ) {
-		return;
+
+	# follow symlinks, limit to 10 levels in case of loop
+	my $count=10;
+	my $f_file = $file;
+	while ($count > 0) {
+		if (-l $f_file) {
+			$f_file = readlink $f_file;
+		} else {
+			last;
+		}
+		$count--;
 	}
-	my $fstat = stat $file;
+	if ($count <= 0) {
+		croak "ftime: apparent symlink loop or more than 10 levels at $file";
+	}
+
+	# skip if the path doesn't point to a file
+	if (not  -f $f_file ) {
+		croak "ftime: not a regular file at $file";
+	}
+
+	# return the modification time of the file
+	my $fstat = stat $f_file;
 	return $fstat->mtime;
 }
 
-# check if this script is newer than a deliverable file, or if the deliverable doesn't exist
+# check if this script or configuration is newer than a deliverable file, or if the deliverable doesn't exist
 # private class function
 sub check_deliverable
 {
 	my $depfile = shift;
-	if (not  -f $depfile) {
+
+	# if the deliverable doesn't exist, then it must be built
+	if (not -e $depfile) {
 		return "does not exist";
 	}
+	if (not -f $depfile) {
+		croak "not a file: $depfile";
+	}
+
+	# if the program has been modified more recently than the deliverable, the deliverable must be rebuilt
 	if (ftime(progpath()) > ftime($depfile)) {
 		return "program modified";
 	}
+
+	# if the configuration has been modified more recently than the deliverable, the deliverable must be rebuilt
+	my $cb = Container::Buildah->instance();
+	my $config_files = $cb->get_config('_config_files');
+	foreach my $file (@$config_files) {
+		if (ftime($file) > ftime($depfile)) {
+			return "config file modified";
+		}
+	}
+
 	return;
 }
 

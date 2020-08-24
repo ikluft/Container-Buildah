@@ -65,10 +65,12 @@ sub _new_instance
 	# note: YAML is the preferred location to keep configuration that changes frequently such as software versions
 	if (not exists $self->{config}) {
 		$self->{config} = {};
+		$self->{config}{_config_files} = [];
 	}
 	if (exists $params{yaml_config}) {
 		say STDERR "params: ".Dumper(\%params);
 		my $in_config = YAML::XS::LoadFile($params{yaml_config});
+		push @{$self->{config}{_config_files}}, $params{yaml_config}; # save a record of config files used
 		say STDERR "YAML: ".Dumper($in_config);
 		if (ref $in_config eq "HASH") {
 			$self->{config} = $in_config;
