@@ -200,39 +200,22 @@ sub container_name
 # public instance method
 sub add
 {
-	my ($self, @paths) = @_;
+	my ($self, @in_args) = @_;
 	my $params = {};
-	if (ref $paths[0] eq "HASH") {
-		$params = shift @paths;
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
 	}
+
+	# process parameters
+	my ($extract, @args) = process_params({name => 'add', extract => [qw(dest)], arg_init => [qw(--add-history)],
+		arg_str => [qw(chown)]}, $params);
 
 	# get special parameter dest if it exists
-	my $dest = $params->{dest};
-	delete $params->{dest};
-
-	# initialize argument list for buildah-add
-	my @args = qw(--add-history);
-
-	# process arguments which take a single string
-	foreach my $argname (qw(chown)) {
-		if (exists $params->{$argname}) {
-			if (ref $params->{$argname}) {
-				confess "add parameter '".$argname."' must be a scalar, got "
-					.(ref $params->{$argname});
-			}
-			push @args, "--$argname", $params->{$argname};
-			delete $params->{$argname};
-		}
-	}
-
-	# error out if any unexpected parameters remain
-	if (%$params) {
-		confess "add received undefined parameters '".(join(" ", keys %$params));
-	}
+	my $dest = $extract->{dest};
 
 	# run command
 	my $cb = Container::Buildah->instance();
-	$cb->buildah("add", @args, $self->container_name, @paths, ($dest ? ($dest) : ()));
+	$cb->buildah("add", @args, $self->container_name, @in_args, ($dest ? ($dest) : ()));
 	return;
 }
 
@@ -361,44 +344,27 @@ sub config
 # public instance method
 sub copy
 {
-	my ($self, @paths) = @_;
+	my ($self, @in_args) = @_;
 	my $params = {};
-	if (ref $paths[0] eq "HASH") {
-		$params = shift @paths;
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
 	}
+
+	# process parameters
+	my ($extract, @args) = process_params({name => 'copy', extract => [qw(dest)], arg_init => [qw(--add-history)],
+		arg_str => [qw(chown)]}, $params);
 
 	# get special parameter dest if it exists
-	my $dest = $params->{dest};
-	delete $params->{dest};
-
-	# initialize argument list for buildah-copy
-	my @args = qw(--add-history);
-
-	# process arguments which take a single string
-	foreach my $argname (qw(chown)) {
-		if (exists $params->{$argname}) {
-			if (ref $params->{$argname}) {
-				confess "copy parameter '".$argname."' must be a scalar, got "
-					.(ref $params->{$argname});
-			}
-			push @args, "--$argname", $params->{$argname};
-			delete $params->{$argname};
-		}
-	}
-
-	# error out if any unexpected parameters remain
-	if (%$params) {
-		confess "copy received undefined parameters '".(join(" ", keys %$params));
-	}
+	my $dest = $extract->{dest};
 
 	# run command
 	my $cb = Container::Buildah->instance();
-	$cb->buildah("copy", @args, $self->container_name, @paths, ($dest ? ($dest) : ()));
+	$cb->buildah("copy", @args, $self->container_name, @in_args, ($dest ? ($dest) : ()));
 	return;
 }
 
 # front-end to "buildah from" subcommand
-# usage: $self->from( [{[dest => value]. [chown => mode]},] src, [src, ...] )
+# usage: $self->from( [{[key => value], ...},] image )
 # public instance method
 sub from
 {
