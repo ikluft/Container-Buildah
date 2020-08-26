@@ -231,43 +231,13 @@ sub commit
 	}
 	my $image_name = shift @in_args;
 
-	# initialize argument list for buildah-commit
-	my @args;
-
-	# process arguments which are boolean flags, excluding those requiring true/false as a string
-	foreach my $argname (qw(disable-compression quiet rm squash))
-	{
-		if (exists $params->{$argname}) {
-			if (ref $params->{$argname}) {
-				confess "commit parameter '".$argname."' must be a scalar, got "
-					.(ref $params->{$argname});
-			}
-			push @args, "--$argname", $params->{$argname};
-			delete $params->{$argname};
-		}
-	}
-
-	# process arguments which take a single string, including those requiring true/false as a string
-	foreach my $argname (qw(authfile cert-dir creds format iidfile sign-by  tls-verify omit-timestamp))
-	{
-		if (exists $params->{$argname}) {
-			if (ref $params->{$argname}) {
-				confess "commit parameter '".$argname."' must be a scalar, got "
-					.(ref $params->{$argname});
-			}
-			push @args, "--$argname", $params->{$argname};
-			delete $params->{$argname};
-		}
-	}
-
-	# error out if any unexpected parameters remain
-	if (%$params) {
-		confess "commit received undefined parameters '".(join(" ", keys %$params));
-	}
+	# process parameters
+	my ($extract, @args) = process_params({name => 'commit', arg_flag => [qw(disable-compression quiet rm squash)],
+		arg_str => [qw(authfile cert-dir creds format iidfile sign-by  tls-verify omit-timestamp)]}, $params);
 
 	# do commit
 	my $cb = Container::Buildah->instance();
-	$cb->buildah("commit", @args, $self->container_name, $image_name);
+	$cb->buildah("commit", @args, $self->container_name, ($image_name // ()));
 	return;
 }
 
