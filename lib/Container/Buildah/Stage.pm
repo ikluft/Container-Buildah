@@ -243,65 +243,25 @@ sub commit
 
 
 # front-end to "buildah config" subcommand
-# usage: $self->config( param => value, ...)
+# usage: $self->config({ param => value, ...})
 # Note: this is for the container's configuration, not to be confused with configuration data of this module
 # public instance method
 sub config
 {
-	my ($self, %params) = @_;
-
-	# initialize argument list for buildah-config
-	my @args = qw(--add-history);
-
-	# process arguments which take a single string
-	foreach my $argname (qw(arch author cmd comment created-by domainname healthcheck healthcheck-interval
-		healthcheck-retries healthcheck-start-period healthcheck-timeout history-comment hostname onbuild
-		os shell stop-signal user workingdir))
-	{
-		if (exists $params{$argname}) {
-			if (ref $params{$argname}) {
-				confess "config: parameter '".$argname."' must be a scalar, got "
-					.(ref $params{$argname});
-			}
-			push @args, "--$argname", $params{$argname};
-			delete $params{$argname};
-		}
+	my ($self, @in_args) = @_;
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
 	}
 
-	# process arguments with take an array (converted to multiple occurrences on the command line)
-	foreach my $argname (qw(annotation env label port volume)) {
-		if (exists $params{$argname}) {
-			if (not ref $params{$argname}) {
-				push @args, "--$argname", $params{$argname};
-			} elsif (ref $params{$argname} eq "ARRAY") {
-				foreach my $entry (@{$params{$argname}}) {
-					push @args, "--$argname", $entry;
-				}
-			} else {
-				confess "config: parameter '".$argname."' must be a scalar or array, got "
-					.(ref $params{$argname});
-			}
-			delete $params{$argname};
-		}
-	}
-
-	# process entrypoint, which has unique formatting
-	if (exists $params{entrypoint}) {
-		if (not ref $params{entrypoint}) {
-			push @args, "--entrypoint", $params{entrypoint};
-		} elsif (ref $params{entrypoint} eq "ARRAY") {
-			push @args, "--entrypoint", '[ "'.join('", "', @{$params{entrypoint}}).'" ]';
-		} else {
-			confess "config: parameter 'entrypoint' must be a scalar or array, got "
-				.(ref $params{entrypoint});
-		}
-		delete $params{entrypoint};
-	}
-
-	# error out if any unused parameters remain
-	if (%params) {
-		confess "config: received undefined parameters '".(join(" ", keys %params));
-	}
+	# process parameters
+	my ($extract, @args) = process_params({name => 'config',
+		extract => [qw(entrypoint)],
+		arg_str => [qw(arch author cmd comment created-by domainname healthcheck healthcheck-interval
+			healthcheck-retries healthcheck-start-period healthcheck-timeout history-comment hostname onbuild
+			os shell stop-signal user workingdir)],
+		arg_array => [qw(annotation env label port volume)],
+		arg_list => [qw(entrypoint)]}, $params);
 
 	# run command
 	my $cb = Container::Buildah->instance();
@@ -716,12 +676,12 @@ __END__
 		my $stage = shift;
 		$stage->run( [qw(/sbin/apk --update upgrade)] );
 		$stage->add( { dest => "/opt/swpkg" }, "tarball.tar.xz" );
-		$stage->config(
+		$stage->config({
 			env => ["SWPKG_LOG=-g"],
 			volume => [qw(/var/cache/swpkg)],
 			port => ["8881"],
 			entrypoint => "/opt/swpkg/entrypoint.sh",
-		);
+		});
 	}
 
 =head1 DESCRIPTION

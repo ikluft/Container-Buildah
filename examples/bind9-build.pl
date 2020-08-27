@@ -91,7 +91,7 @@ sub stage_build
 		# create build and product directories
 		["mkdir", $apkbuild_dir, $apk_dir],
 	);
-	$stage->config(workingdir => $apkbuild_dir);
+	$stage->config({workingdir => $apkbuild_dir});
 	$stage->run(
 		# copy BIND9 APK build files from Alpine Git repo
 		[qw(wget --quiet --recursive --level=1 --no-parent --https-only --cut-dirs=4 --no-host-directories
@@ -170,12 +170,12 @@ sub stage_runtime
 	$stage->copy({dest => "/"}, "content/entrypoint.sh" );
 
 	# container environment
-	$stage->config(
+	$stage->config({
 		env => ["BIND_LOG=-g"],
 		volume => [qw(/etc/bind /var/cache/bind)],
 		port => ["53", "53/udp"],
 		entrypoint => "/entrypoint.sh",
-	);
+	});
 }
 
 #
