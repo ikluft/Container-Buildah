@@ -326,56 +326,23 @@ sub mount
 # public instance method
 sub run
 {
-	my ($self, @commands) = @_;
+	my ($self, @in_args) = @_;
 	my $params = {};
-	if (ref $commands[0] eq "HASH") {
-		$params = shift @commands;
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
 	}
 
-	# initialize argument list for buildah-run
-	my @args = qw(--add-history);
-
-	# process arguments which take a single string
-	foreach my $argname (qw(cap-add cap-drop cni-config-dir cni-plugin-path ipc isolation network pid runtime
-		runtime-flag no-pivot user uts))
-	{
-		if (exists $params->{$argname}) {
-			if (ref $params->{$argname}) {
-				confess "run parameter '".$argname."' must be a scalar, got "
-					.(ref $params->{$argname});
-			}
-			push @args, "--$argname", $params->{$argname};
-			delete $params->{$argname};
-		}
-	}
-
-	# process arguments with take an array (converted to multiple occurrences on the command line)
-	foreach my $argname (qw(mount volume)) {
-		if (exists $params->{$argname}) {
-			if (not ref $params->{$argname}) {
-				push @args, "--$argname", $params->{$argname};
-			} elsif (ref $params->{$argname} eq "ARRAY") {
-				foreach my $entry (@{$params->{$argname}}) {
-					push @args, "--$argname", $entry;
-				}
-			} else {
-				confess "run parameter '".$argname."' must be a scalar or array, got "
-					.(ref $params->{$argname});
-			}
-			delete $params->{$argname};
-		}
-	}
-
-	# error out if any unexpected parameters remain
-	if (%$params) {
-		confess "run: received undefined parameters '".(join(" ", keys %$params));
-	}
+	# process parameters
+	my ($extract, @args) = process_params({name => 'config',
+		arg_init => ['--add-history'],
+		arg_str => [qw(cap-add cap-drop cni-config-dir cni-plugin-path ipc isolation network pid runtime
+			runtime-flag no-pivot user uts)],
+		arg_array => [qw(mount volume)],
+	}, $params);
 
 	# loop through provided commands
 	# build outer array if only one command was provided
-	if (not ref $commands[0]) {
-		@commands = [@commands];
-	}
+	my @commands = ref $in_args[0] ? @in_args : [@in_args];
 	foreach my $command (@commands) {
 		# if any entries are not arrays, temporarily make them into one
 		if (not ref $command) {
