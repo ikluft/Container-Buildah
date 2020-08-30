@@ -390,17 +390,17 @@ sub buildah
 # - bud
 # - containers
 # - images
-# - info
+# ✓ info
 # - inspect (for image or container)
 # - manifest-* later
-# - mount (for image or container)
+# ✓ mount
 # - pull
 # - push
 # - rename
 # ✓ rm
 # ✓ rmi
 # ✓ tag
-# - umount (for image or container)
+# ✓ umount
 # ✓ unshare
 # - version
 
@@ -425,6 +425,26 @@ sub info
 		or croak "info(): failed to run buildah - exit code $?" ;
 	my $info = YAML::XS::Load($yaml);
 	return $info;
+}
+
+# front-end to "buildah mount" subcommand
+# usage: $cb->mount({[notruncate => 1]}, container, ...)
+# public class method
+sub mount
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my ($extract, @args) = process_params({name => 'mount', arg_flag => [qw(notruncate)]}, $params);
+
+	# run buildah-tag
+	$cb->buildah("mount", @args, @in_args);
+	return;
 }
 
 # front end to "buildah tag" subcommand
@@ -494,6 +514,27 @@ sub rmi
 	$cb->buildah("rmi", @args, @in_args);
 	return;
 }
+
+# front-end to "buildah umount" subcommand
+# usage: $cb->umount({[notruncate => 1]}, container, ...)
+# public class method
+sub umount
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my ($extract, @args) = process_params({name => 'umount', arg_flag => [qw(all)]}, exclusive => [qw(all)], $params);
+
+	# run buildah-tag
+	$cb->buildah("umount", @args, @in_args);
+	return;
+}
+
 
 # front end to "buildah unshare" (user namespace share) subcommand
 # usage: $cb->unshare({container => "name_or_id", [envname => "env_var_name"]}, "cmd", "args", ... )
