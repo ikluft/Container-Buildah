@@ -404,6 +404,35 @@ sub buildah
 # ✓ unshare
 # - version
 
+# front end to "buildah bud" (build under dockerfile) subcommand
+# usage: $cb->bud({name => value, ...}, context)
+# public class method
+sub bud
+{	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my ($extract, @args) = process_params({name => 'bud',
+		arg_flag => [qw(compress disable-content-trust no-cache pull pull-always pull-never quiet)],
+		arg_flag_str => [qw(disable-compression force-rm layers rm squash tls-verify)],
+		arg_str => [qw(arch authfile cache-from cert-dir cgroup-parent cni-config-dir cni-plugin-path cpu-period
+			cpu-quota cpu-shares cpuset-cpus cpuset-mems creds decryption-key file format http-proxy iidfile ipc
+			isolation loglevel logfile memory memory-swap network os platform runtime shm-size sign-by tag target
+			userns userns-uid-map userns-gid-map userns-uid-map-user userns-gid-map-group uts)],
+		arg_array => [qw(add-host annotation build-arg cap-add cap-drop device dns dns-option dns-search
+			label runtime-flag security-opt ulimit volume)],
+		}, $params);
+
+	# run buildah-tag
+	$cb->buildah("bud", @args, @in_args);
+	return;
+
+}
+
 # front end to "buildah info" subcommand
 # usage: $cb->info([{format => format}])
 # this uses YAML::XS with the assumption that buildah-info's JSON output is a proper subset of YAML
