@@ -408,7 +408,8 @@ sub buildah
 # usage: $cb->bud({name => value, ...}, context)
 # public class method
 sub bud
-{	my ($class_or_obj, @in_args) = @_;
+{
+	my ($class_or_obj, @in_args) = @_;
 	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $params = {};
 	if (ref $in_args[0] eq "HASH") {

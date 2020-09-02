@@ -118,11 +118,21 @@ sub debug
 {
 	my ($self, @in_args) = @_;
 	my $cb = Container::Buildah->instance();
-	my @label;
-	if (exists $self->{config}{container_name}) {
-		@label = ('['.$self->{config}{container_name}.']');
+
+	# collect debug parameters
+	my %params;
+	if (ref $in_args[0] eq "HASH") {
+		my $params_ref = shift;
+		%params = %$params_ref;
 	}
-	$cb->debug(@label, @in_args);
+
+	# insert label parameter with container name, if we're in a state where it's defined
+	if (exists $self->{config}{container_name}) {
+		$params{label} = $self->{config}{container_name};
+	}
+
+	# call the debug method in Container::Buildah
+	$cb->debug(\%params, @in_args);
 	return;
 }
 
@@ -679,7 +689,8 @@ prints a list of strings to STDOUT
 
 =method debug
 
-prints a list of strings to STDERR, if debugging mode is on
+Prints a list of strings to STDERR, if debugging is at the specified level.
+This is a wrapper around the Container::Buildah::debug() method, which adds a label parameter with the container name.
 
 =method container_name
 

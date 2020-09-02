@@ -59,7 +59,11 @@ sub _new_instance
 	my ($class, %params) = @_;
 	my $self  = bless { }, $class;
 
-	if (exists $params{debug}) { print STDERR "debug: _new_instance: params=".Dumper(\%params); }
+	# debugging isn't established yet so just be verbose about startup parameters if debug is specified
+	if (exists $params{debug})
+	{
+		print STDERR "debug: _new_instance: params=".Dumper(\%params);
+	}
 
 	# set up config hash - use yaml_config file if provided, then add all entries from config parameter
 	# note: YAML is the preferred location to keep configuration that changes frequently such as software versions
@@ -162,16 +166,33 @@ sub status
 # public class function
 sub debug
 {
-	if ($debug) {
-		# get Container::Buildah ref from method-call parameter or class singleton instance
-		my @in_args = @_;
-		my $cb = ((ref $in_args[0]) and (ref $in_args[0] eq "Container::Buildah")) ? shift @in_args
-			: Container::Buildah->instance();
+	my ($cb, @in_args) = @_;
+	if (ref $cb ne __PACKAGE__) {
+		confess "debug must be called as a class method";
+	}
+
+	# collect debug parameters
+	my %params;
+	if (ref $in_args[0] eq "HASH") {
+		my $params_ref = shift;
+		%params = %$params_ref;
+	}
+
+	# print debugging statement if enabled
+	my $level = $params{level} // 1;
+	if ($debug >= $level) {
+		# debug label: get caller name (default to function name from Perl call stack) and any label string
+		my @label;
+		push @label, ($params{name} // (caller(1))[3]);
+		if (exists $params{label}) {
+			push @label, $params{label};
+		}
 
 		# print debug message
-		say STDERR "--- debug: ".join(" ", @in_args);
+		my $msg = "--- debug [".(join "/", @label)."]: ".join(" ", @in_args);
+		say STDERR $msg;
 		if ((exists $cb->{oldstderr}) and ($cb->{oldstderr}->fileno != fileno(STDERR))) {
-			$cb->{oldstderr}->print("--- debug: ".join(" ", @in_args)."\n");
+			$cb->{oldstderr}->print($msg."\n");
 		}
 	}
 	return;
@@ -196,7 +217,7 @@ sub expand
 	my $output;
 	my $cb = Container::Buildah->instance();
 	$cb->{template}->process(\$value, $cb->{config}, \$output);
-	debug "expand: $value -> $output";
+	$cb->debug("expand: $value -> $output");
 
 	# expand templates as long as any remain, up to 10 iterations
 	my $count=0;
@@ -204,7 +225,7 @@ sub expand
 		$value = $output;
 		$output = ""; # clear because template concatenates to it
 		$cb->{template}->process(\$value, $cb->{config}, \$output);
-		debug "expand ($count): $value -> $output";
+		$cb->debug("expand ($count): $value -> $output");
 	}
 	return $output;
 }
@@ -274,11 +295,11 @@ sub get_debug
 	return $debug;
 }
 
-# set debug mode on or off
+# set debug mode/level
 # public class function
 sub set_debug
 {
-	$debug = (shift ? 1 : 0); # save boolean value
+	$debug = int shift; # save integer debug level
 	return;
 }
 
@@ -338,9 +359,9 @@ sub exception_handler
 # private class method
 sub build_order_deps
 {
-	my $self = shift;
+	my $cb = shift;
 	my %deps; # dependencies in a hash of arrays, to be fed to Algorithm::Dependency::Source::HoA
-	my $stages = $self->get_config("stages");
+	my $stages = $cb->get_config("stages");
 	if (ref $stages ne "HASH") {
 		croak "stages confguration must be a hash, got ".((ref $stages) ? ref $stages : "scalar");
 	}
@@ -371,12 +392,12 @@ sub build_order_deps
 	my $Source = Algorithm::Dependency::Source::HoA->new( \%deps );
 	my $algdep = Algorithm::Dependency->new(source => $Source);
 	my $order = $algdep->schedule_all;
-	debug "build order (computed): ".join(" ", @$order);
-	$self->{order} = {};
+	$cb->debug("build order (computed): ".join(" ", @$order));
+	$cb->{order} = {};
 	for (my $i=0; $i < scalar @$order; $i++) {
-		$self->{order}{$order->[$i]} = $i;
+		$cb->{order}{$order->[$i]} = $i;
 	}
-	debug "build order (data): ".join(" ", grep {$_."=>".$self->{order}{$_}} keys %{$self->{order}});
+	$cb->debug("build order (data): ".join(" ", grep {$_."=>".$cb->{order}{$_}} keys %{$cb->{order}}));
 	return;
 }
 
@@ -605,9 +626,16 @@ The data is similar to what would be in a Dockerfile, except this module makes i
 
 prints a list of strings to STDOUT
 
-=func debug
+=method debug
 
-prints a list of strings to STDERR, if debugging mode is on
+Prints a list of strings to STDERR, if debugging is at the specified level.
+If the first argument is a HASH reference, it is used for key/value parameters.
+The recognized parameters are
+=over
+=item "name" for the name of the caller function, defaults to the name from the Perl call stack
+=item "level" for the minimum debugging level to print the message
+=item "label" for an additional label string to enclose in brackets, such as a container name
+=back
 
 =method get_config
 
@@ -615,11 +643,11 @@ prints a list of strings to STDERR, if debugging mode is on
 
 =method get_debug
 
-return boolean value of debug mode flag
+Return integer value of debug level
 
 =method set_debug
 
-take a boolean value parameter to set the debug mode flag
+Take an integer value parameter to set the debug level. A level of 0 means debugging is turned off. The default is 0.
 
 =method prog
 
