@@ -342,7 +342,7 @@ sub cmd
 	no autodie qw(system);
 
 	eval {
-		$cb->debug("cmd $name ".join(" ", @in_args));
+		$cb->debug({level => 3}, "cmd $name ".join(" ", @in_args));
 		system(@in_args);
 		if ($? == -1) {
 			confess "failed to execute command (".join(" ", @in_args)."): $!";
@@ -376,7 +376,7 @@ sub buildah
 	my ($class_or_obj, @in_args) = @_;
 	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 
-	$cb->debug("buildah: args = ".join(" ", @in_args));
+	$cb->debug({level => 2}, "buildah: args = ".join(" ", @in_args));
 	$cb->cmd({name => "buildah"}, prog("buildah"), @in_args);
 	return;
 }
