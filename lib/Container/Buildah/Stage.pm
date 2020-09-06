@@ -171,7 +171,7 @@ sub generate_read_accessors
 				or confess "$method_name method (from generate_read_accessors) expects ".__PACKAGE__." object, got "
 					.((defined $self)?((ref $self)?ref $self:"scalar"):"undef");
 			my $value = $self->stage_config($field_name);
-			$self->debug("$method_name: ".((defined $value)?"value=$value":"undef"));
+			$self->debug({level => 3, label => $method_name}, (defined $value)?"value=$value":"undef");
 			return $value;
 		};
 
@@ -211,6 +211,7 @@ sub container_name
 sub add
 {
 	my ($self, @in_args) = @_;
+	$self->debug({level => 2}, @in_args);
 	my $params = {};
 	if (ref $in_args[0] eq "HASH") {
 		$params = shift @in_args;
@@ -235,6 +236,7 @@ sub add
 sub commit
 {
 	my ($self, @in_args) = @_;
+	$self->debug({level => 2}, @in_args);
 	my $params = {};
 	if (ref $in_args[0] eq "HASH") {
 		$params = shift @in_args;
@@ -259,6 +261,7 @@ sub commit
 sub config
 {
 	my ($self, @in_args) = @_;
+	$self->debug({level => 2}, @in_args);
 	my $params = {};
 	if (ref $in_args[0] eq "HASH") {
 		$params = shift @in_args;
@@ -285,6 +288,7 @@ sub config
 sub copy
 {
 	my ($self, @in_args) = @_;
+	$self->debug({level => 2}, @in_args);
 	my $params = {};
 	if (ref $in_args[0] eq "HASH") {
 		$params = shift @in_args;
@@ -308,7 +312,8 @@ sub copy
 # public instance method
 sub from
 {
-	my ($self, %params) = @_;
+	my ($self, @in_args) = @_;
+	$self->debug({level => 2}, @in_args);
 
 	# initialize argument list for buildah-from
 	my @args = qw(--add-history);
@@ -322,7 +327,8 @@ sub from
 # public instance method
 sub mount
 {
-	my ($self, %params) = @_;
+	my ($self, @in_args) = @_;
+	$self->debug({level => 2}, @in_args);
 
 	# TODO
 	confess "unimplemented";
@@ -337,6 +343,7 @@ sub mount
 sub run
 {
 	my ($self, @in_args) = @_;
+	$self->debug({level => 2}, @in_args);
 	my $params = {};
 	if (ref $in_args[0] eq "HASH") {
 		$params = shift @in_args;
@@ -373,7 +380,8 @@ sub run
 # public instance method
 sub umount
 {
-	my ($self, %params) = @_;
+	my ($self, @in_args) = @_;
+	$self->debug({level => 2}, @in_args);
 
 	# TODO
 	confess "unimplemented";
