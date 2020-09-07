@@ -198,14 +198,16 @@ sub param_arg_list
 			confess "process_params parameter 'arg_list' must be an array, got ".(ref $defs->{arg_list});
 		}
 		foreach my $argname (@{$defs->{arg_list}}) {
-			if (not ref $params->{$argname}) {
-				push @$arg_ref, "--$argname", $params->{$argname};
-			} elsif (ref $params->{$argname} eq "ARRAY") {
-				push @$arg_ref, "--$argname", '[ "'.join('", "', @{$params->{$argname}}).'" ]';
-			} else {
-				confess "$name parameter '$argname' must be scalar or array, got ".(ref $params->{$argname});
+			if (exists $params->{$argname}) {
+				if (not ref $params->{$argname}) {
+					push @$arg_ref, "--$argname", $params->{$argname};
+				} elsif (ref $params->{$argname} eq "ARRAY") {
+					push @$arg_ref, "--$argname", '[ "'.join('", "', @{$params->{$argname}}).'" ]';
+				} else {
+					confess "$name parameter '$argname' must be scalar or array, got ".(ref $params->{$argname});
+				}
+				delete $params->{$argname};
 			}
-			delete $params->{$argname};
 		}
 	}
 	return;
@@ -339,6 +341,7 @@ sub cmd
 	my ($class_or_obj, $opts, @in_args) = @_;
 	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $name = (exists $opts->{name}) ? $opts->{name} : "cmd";
+	Container::Buildah::disallow_undef(\@in_args);
 	no autodie qw(system);
 
 	eval {
@@ -376,6 +379,7 @@ sub buildah
 	my ($class_or_obj, @in_args) = @_;
 	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 
+	Container::Buildah::disallow_undef(\@in_args);
 	$cb->debug({level => 3}, "buildah: args = ".join(" ", @in_args));
 	$cb->cmd({name => "buildah"}, prog("buildah"), @in_args);
 	return;

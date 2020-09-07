@@ -174,7 +174,7 @@ sub debug
 	# collect debug parameters
 	my %params;
 	if (ref $in_args[0] eq "HASH") {
-		my $params_ref = shift;
+		my $params_ref = shift @in_args;
 		%params = %$params_ref;
 	}
 
@@ -189,7 +189,7 @@ sub debug
 		}
 
 		# print debug message
-		my $msg = "--- debug [".(join "/", @label)."]: ".join(" ", @in_args);
+		my $msg = "--- debug [".(join "/", @label)."]: ".join(" ", map {(defined $_) ? $_ : "(undef)"} @in_args);
 		say STDERR $msg;
 		if ((exists $cb->{oldstderr}) and ($cb->{oldstderr}->fileno != fileno(STDERR))) {
 			$cb->{oldstderr}->print($msg."\n");
@@ -320,6 +320,23 @@ sub get_arch
 		}
 	}
 	return $arch;
+}
+
+# check array to verify all entries are defined, otherwise throw an exception
+# private class function
+sub disallow_undef
+{
+	my $array_ref = shift;
+	my $got_type = ref $array_ref;
+	if ($got_type ne "ARRAY") {
+		confess "disallow_undef: improper usage - requires ARRAY ref, got ".($got_type ? $got_type : "undef");
+	}
+	for (my $i=0; $i < scalar @$array_ref; $i++) {
+		if (not defined $array_ref->[$i]) {
+			confess "disallow_undef: found undefined value in parameter list item $i: ".join(" ", map {(defined $_) ? $_ : "(undef)"} @$array_ref);
+		}
+	}
+	return;
 }
 
 #

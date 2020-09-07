@@ -85,9 +85,7 @@ sub new {
 # public instance method
 sub stage_config
 {
-	my $self = shift;
-	my $key = shift;
-
+	my ($self, $key) = @_;
 	if (exists $self->{$key}) {
 		if (ref $self->{$key} and ref $self->{$key} ne "ARRAY") {
 			return $self->{$key};
@@ -95,7 +93,6 @@ sub stage_config
 
 		# if the value is a scalar, perform variable expansion
 		return Container::Buildah::expand($self->{$key});
-
 	}
 	return;
 }
@@ -122,7 +119,7 @@ sub debug
 	# collect debug parameters
 	my %params;
 	if (ref $in_args[0] eq "HASH") {
-		my $params_ref = shift;
+		my $params_ref = shift @in_args;
 		%params = %$params_ref;
 	}
 
@@ -169,9 +166,9 @@ sub generate_read_accessors
 			my $self = shift;
 			$self->isa(__PACKAGE__)
 				or confess "$method_name method (from generate_read_accessors) expects ".__PACKAGE__." object, got "
-					.((defined $self)?((ref $self)?ref $self:"scalar"):"undef");
+					.((defined $self)?((ref $self)?ref $self:"scalar"):"(undef)");
 			my $value = $self->stage_config($field_name);
-			$self->debug({level => 3, label => $method_name}, (defined $value)?"value=$value":"undef");
+			$self->debug({level => 3, label => $method_name}, (defined $value)?"value=$value":"(undef)");
 			return $value;
 		};
 
@@ -269,7 +266,6 @@ sub config
 
 	# process parameters
 	my ($extract, @args) = process_params({name => 'config',
-		extract => [qw(entrypoint)],
 		arg_str => [qw(arch author cmd comment created-by domainname healthcheck healthcheck-interval
 			healthcheck-retries healthcheck-start-period healthcheck-timeout history-comment hostname onbuild
 			os shell stop-signal user workingdir)],
@@ -526,7 +522,7 @@ sub launch_namespace
 	# run the builder script in the container
 	$cb->unshare({container => $self->container_name, envname => $mnt_env_name},
 		progpath(), "--internal=".$self->get_name,
-		(Container::Buildah::get_debug() ? "--debug" : ()));
+		((Container::Buildah::get_debug() > 0) ? "--debug=".Container::Buildah::get_debug() : ()));
 
 	# commit the container if configured
 	my $commit = $self->get_commit;
