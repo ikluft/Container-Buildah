@@ -724,7 +724,13 @@ This is a wrapper around the Container::Buildah::debug() method, which adds a la
 
 =method mount
 
-=method run
+=method run ( {option => value, ...}, [command, arg, ...] | [[command, arg, ...], ...] )
+
+The option parameter is a hash reference with command-line options for buildah-run.
+For options with shortcut aliases, only the long form is recognized here in order to avoid duplication.
+
+The command parameter can be an array of strings for one command, or array of arrays of strings for multiple commands.
+This applies the same command-line arguments to each command it runs.
 
 =method umount
 
