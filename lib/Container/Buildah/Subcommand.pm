@@ -187,7 +187,8 @@ sub param_arg_array
 }
 
 # param_arg_list - process arguments which are formatted as a list on the command-line
-# (this is only used by buildah-config's entrypoint parameter)
+# This is only used by buildah-config's entrypoint parameter. This wrapper allows the parameter to be given as
+# an array structure which will be provided to buildah formatted as a string parameter.
 # private class function
 sub param_arg_list
 {
