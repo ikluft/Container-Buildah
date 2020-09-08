@@ -405,7 +405,7 @@ sub build_order_deps
 		$deps{$stage} = \@stage_deps;
 	}
 
-	# compute build order from dependencies using Algorithm::Dependency
+	# compute build order from dependencies using Algorithm::Dependency, using hash-of-arrays input format
 	my $Source = Algorithm::Dependency::Source::HoA->new( \%deps );
 	my $algdep = Algorithm::Dependency->new(source => $Source);
 	my $order = $algdep->schedule_all;
