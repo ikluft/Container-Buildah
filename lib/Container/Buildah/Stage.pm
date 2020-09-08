@@ -215,8 +215,12 @@ sub add
 	}
 
 	# process parameters
-	my ($extract, @args) = process_params({name => 'add', extract => [qw(dest)], arg_init => [qw(--add-history)],
-		arg_str => [qw(chown)]}, $params);
+	my ($extract, @args) = process_params({name => 'add',
+		extract => [qw(dest)],
+		arg_init => [qw(--add-history)],
+		arg_flag => [qw(quiet)],
+		arg_str => [qw(chown)]
+	}, $params);
 
 	# get special parameter dest if it exists
 	my $dest = $extract->{dest};
@@ -241,8 +245,12 @@ sub commit
 	my $image_name = shift @in_args;
 
 	# process parameters
-	my ($extract, @args) = process_params({name => 'commit', arg_flag => [qw(disable-compression quiet rm squash)],
-		arg_str => [qw(authfile cert-dir creds format iidfile sign-by  tls-verify omit-timestamp)]}, $params);
+	my ($extract, @args) = process_params({name => 'commit',
+		arg_flag => [qw(disable-compression quiet rm squash)],
+		arg_int => [qw(timestamp)],
+		arg_str => [qw(authfile blob-cache cert-dir creds encryption-key encrypt-layer format iidfile
+			reference-time sign-by signature-policy tls-verify omit-timestamp)]
+	}, $params);
 
 	# do commit
 	my $cb = Container::Buildah->instance();
@@ -266,11 +274,13 @@ sub config
 
 	# process parameters
 	my ($extract, @args) = process_params({name => 'config',
+		arg_init => [qw(--add-history)],
 		arg_str => [qw(arch author cmd comment created-by domainname healthcheck healthcheck-interval
 			healthcheck-retries healthcheck-start-period healthcheck-timeout history-comment hostname onbuild
 			os shell stop-signal user workingdir)],
 		arg_array => [qw(annotation env label port volume)],
-		arg_list => [qw(entrypoint)]}, $params);
+		arg_list => [qw(entrypoint)]
+	}, $params);
 
 	# run command
 	my $cb = Container::Buildah->instance();
@@ -291,7 +301,10 @@ sub copy
 	}
 
 	# process parameters
-	my ($extract, @args) = process_params({name => 'copy', extract => [qw(dest)], arg_init => [qw(--add-history)],
+	my ($extract, @args) = process_params({name => 'copy',
+		extract => [qw(dest)],
+		arg_init => [qw(--add-history)],
+		arg_flag => [qw(quiet)],
 		arg_str => [qw(chown)]}, $params);
 
 	# get special parameter dest if it exists
@@ -346,11 +359,12 @@ sub run
 	}
 
 	# process parameters
-	my ($extract, @args) = process_params({name => 'config',
+	my ($extract, @args) = process_params({name => 'run',
 		arg_init => ['--add-history'],
-		arg_str => [qw(cap-add cap-drop cni-config-dir cni-plugin-path ipc isolation network pid runtime
-			runtime-flag no-pivot user uts)],
-		arg_array => [qw(mount volume)],
+		arg_flag => [qw(no-pivot terminal)],
+		arg_str => [qw(cap-add cap-drop cni-config-dir cni-plugin-path hostname ipc isolation network pid runtime
+			user uts)],
+		arg_array => [qw(mount runtime-flag security-opt volume)],
 	}, $params);
 
 	# loop through provided commands
