@@ -305,7 +305,8 @@ sub copy
 		extract => [qw(dest)],
 		arg_init => [qw(--add-history)],
 		arg_flag => [qw(quiet)],
-		arg_str => [qw(chown)]}, $params);
+		arg_str => [qw(chown)]
+	}, $params);
 
 	# get special parameter dest if it exists
 	my $dest = $extract->{dest};
@@ -323,12 +324,41 @@ sub from
 {
 	my ($self, @in_args) = @_;
 	$self->debug({level => 2}, @in_args);
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
 
-	# initialize argument list for buildah-from
-	my @args = qw(--add-history);
+	# insert name parameter from current container
+	if (exists $params->{name}) {
+		if ($params->{name} ne $self->container_name) {
+			croak "from: name parameter does not match stage name - omit it and it will be added automatically";
+		}
+	} else {
+		$params->{name} = $self->container_name;
+	}
 
-	# TODO
-	confess "unimplemented";
+	# process parameters
+	my ($extract, @args) = process_params({name => 'from',
+		arg_init => [qw(--add-history)],
+		arg_flag => [qw(pull-always pull-never tls-verify quiet)],
+		arg_flag_str => [qw(http-proxy pull)],
+		arg_str => [qw(authfile cert-dir cgroup-parent cidfile cni-config-dir cni-plugin-path cpu-period cpu-quota
+			cpu-shares cpuset-cpus cpuset-mems creds device format ipc isolation memory memory-swap name network
+			pid shm-size ulimit userns userns-uid-map userns-gid-map userns-uid-map-user userns-gid-map-group uts)],
+		arg_array => [qw(add-host cap-add cap-drop decryption-key dns dns-option dns-search security-opt volume)],
+	}, $params);
+
+	# get image parameter
+	my $image = shift @in_args;
+	if (not defined $image) {
+		croak "image parameter missing in call to 'from' method";
+	}
+
+	# run command
+	my $cb = Container::Buildah->instance();
+	$cb->buildah("from", @args, $image);
+	return;
 }
 
 # front-end to "buildah mount" subcommand
