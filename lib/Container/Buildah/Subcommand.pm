@@ -394,6 +394,7 @@ sub buildah
 # TODO list for wrapper functions
 # - bud
 # - containers
+# ✓ from
 # - images
 # ✓ info
 # - inspect (for image or container)
@@ -650,7 +651,37 @@ __END__
 
 =method buildah
 
+=method bud
+
+=method containers
+
+=method from
+
+=method images
+
+=method info
+
+=method inspect
+
+=method mount
+
+=method pull
+
+=method push
+
+=method rename
+
+=method rm
+
+=method rmi
+
 =method tag
+
+=method umount
+
+=method unshare
+
+=method version
 
 =head1 BUGS AND LIMITATIONS
 
