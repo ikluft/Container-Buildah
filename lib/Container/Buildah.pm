@@ -180,10 +180,20 @@ sub debug
 
 	# print debugging statement if enabled
 	my $level = $params{level} // 1;
+	my $wrapper = $params{wrapper} // 0; # skip stack frame if called from debug wrapper function
 	if ($debug >= $level) {
 		# debug label: get caller name (default to function name from Perl call stack) and any label string
 		my @label;
-		push @label, ($params{name} // (caller(1))[3]);
+		if (exists $params{name} and defined $params{name}) {
+			push @label, $params{name};
+		} else {
+			my $caller = (caller(1+$wrapper))[3];
+			if ($caller eq "(eval)") {
+				push @label, (caller(2+$wrapper))[3], "eval";
+			} else {
+				push @label, $caller;
+			}
+		}
 		if (exists $params{label}) {
 			push @label, $params{label};
 		}

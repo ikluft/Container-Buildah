@@ -122,6 +122,7 @@ sub debug
 		my $params_ref = shift @in_args;
 		%params = %$params_ref;
 	}
+	$params{wrapper} = 1; # tell Container::Buidlah::debug() to skip the stack frame for this wrapper
 
 	# insert label parameter with container name, if we're in a state where it's defined
 	if (exists $self->{config}{container_name}) {
