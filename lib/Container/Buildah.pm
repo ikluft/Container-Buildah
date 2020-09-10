@@ -31,7 +31,7 @@ Container::Buildah::Subcommand->import(qw(process_params prog));
 
 # methods delegated to Container::Buildah::Subcommand that need to be imported into this class' symbol table
 # (methods should not be handled by Exporter - we are doing the same thing but keeping it private to the class)
-Readonly::Array my @subcommand_methods => qw(cmd buildah bud containers images info inspect
+Readonly::Array my @subcommand_methods => qw(cmd buildah bud containers from images info inspect
 	mount pull push rename rm rmi tag umount unshare version);
 
 #

@@ -317,50 +317,6 @@ sub copy
 	return;
 }
 
-# front-end to "buildah from" subcommand
-# usage: $self->from( [{[key => value], ...},] image )
-# public instance method
-sub from
-{
-	my ($self, @in_args) = @_;
-	$self->debug({level => 2}, @in_args);
-	my $params = {};
-	if (ref $in_args[0] eq "HASH") {
-		$params = shift @in_args;
-	}
-
-	# insert name parameter from current container
-	if (exists $params->{name}) {
-		if ($params->{name} ne $self->container_name) {
-			croak "from: name parameter does not match stage name - omit it and it will be added automatically";
-		}
-	} else {
-		$params->{name} = $self->container_name;
-	}
-
-	# process parameters
-	my ($extract, @args) = process_params({name => 'from',
-		arg_init => [qw(--add-history)],
-		arg_flag => [qw(pull-always pull-never tls-verify quiet)],
-		arg_flag_str => [qw(http-proxy pull)],
-		arg_str => [qw(authfile cert-dir cgroup-parent cidfile cni-config-dir cni-plugin-path cpu-period cpu-quota
-			cpu-shares cpuset-cpus cpuset-mems creds device format ipc isolation memory memory-swap name network
-			pid shm-size ulimit userns userns-uid-map userns-gid-map userns-uid-map-user userns-gid-map-group uts)],
-		arg_array => [qw(add-host cap-add cap-drop decryption-key dns dns-option dns-search security-opt volume)],
-	}, $params);
-
-	# get image parameter
-	my $image = shift @in_args;
-	if (not defined $image) {
-		croak "image parameter missing in call to 'from' method";
-	}
-
-	# run command
-	my $cb = Container::Buildah->instance();
-	$cb->buildah("from", @args, $image);
-	return;
-}
-
 # front-end to "buildah mount" subcommand
 # usage: $path = $self->mount()
 # public instance method
@@ -561,7 +517,7 @@ sub launch_namespace
 
 	# get the base image
 	my $cb = Container::Buildah->instance();
-	$cb->buildah("from", "--name=".$self->container_name, $self->get_from);
+	$cb->from({name => $self->container_name}, $self->get_from);
 
 	# run the builder script in the container
 	$cb->unshare({container => $self->container_name, envname => $mnt_env_name},
@@ -749,8 +705,6 @@ This is a wrapper around the Container::Buildah::debug() method, which adds a la
 =method config
 
 =method copy
-
-=method from
 
 =method mount
 
