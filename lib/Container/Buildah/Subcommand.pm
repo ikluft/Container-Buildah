@@ -285,7 +285,7 @@ sub envprog
 	return $envprog;
 }
 
-# look up secure program path
+# look up program in standard Linux/POSIX path, not using PATH environment variable for security
 # private class function
 sub prog
 {
@@ -297,7 +297,7 @@ sub prog
 	}
 	my $prog = $cb->{prog};
 
-	# call with undef to initialize cache (mainly needed for testing because normal use will auto-create it)
+	# call with undef to initialize cache (needed for testing because normal use will auto-create it)
 	if (!defined $progname) {
 		return;
 	}
