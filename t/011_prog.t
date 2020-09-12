@@ -7,7 +7,6 @@ use autodie;
 
 use Test::More;
 use Container::Buildah;
-use Container::Buildah::Subcommand;
 use Data::Dumper;
 
 # detect debug mode from environment
