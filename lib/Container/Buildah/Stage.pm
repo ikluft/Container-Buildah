@@ -395,9 +395,11 @@ sub rmcontainer
 	my $self = shift;
 	my $cb = Container::Buildah->instance();
 
-	$cb->cmd({name => "rmcontainer", nonzero => sub {},
+	$cb->cmd({name => "rmcontainer",
+		suppress_output => 1,
+		nonzero => sub {},
 		zero => sub {$cb->rm($self->container_name);}},
-		prog("buildah")." inspect ".$self->container_name.' >/dev/null 2>&1');
+		prog("buildah"), "inspect", $self->container_name);
 	return;
 }
 

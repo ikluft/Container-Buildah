@@ -343,11 +343,17 @@ sub cmd
 	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $name = (exists $opts->{name}) ? $opts->{name} : "cmd";
 	Container::Buildah::disallow_undef(\@in_args);
-	no autodie qw(system);
 
+	my $retval;
 	eval {
 		$cb->debug({level => 4}, "cmd $name ".join(" ", @in_args));
-		system(@in_args);
+		if ($opts->{capture_output} // 0) {
+			IPC::Run::run(\@in_args, '<', \undef, '>', \$retval);
+		} elsif ($opts->{suppress_output} // 0) {
+			IPC::Run::run(\@in_args, '<', \undef, '>&', "/dev/null");
+		} else {
+			IPC::Run::run(\@in_args, '<', \undef, '>', \*STDOUT);
+		}
 		if ($? == -1) {
 			confess "failed to execute command (".join(" ", @in_args)."): $!";
 		}
@@ -370,7 +376,7 @@ sub cmd
 			confess "$name: ".$@;
 		}
 	};
-	return;
+	return $retval;
 }
 
 # run buildah command with parameters
@@ -380,10 +386,16 @@ sub buildah
 	my ($class_or_obj, @in_args) = @_;
 	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 
+	# collect options to pass along to cmd() method
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+	$params->{name} = "buildah";
+
 	Container::Buildah::disallow_undef(\@in_args);
 	$cb->debug({level => 3}, "buildah: args = ".join(" ", @in_args));
-	$cb->cmd({name => "buildah"}, prog("buildah"), @in_args);
-	return;
+	return $cb->cmd($params, prog("buildah"), @in_args);
 }
 
 #
@@ -488,7 +500,7 @@ sub info
 
 	# TODO add --format queries; until then no parameter processing is done
 	
-	# read buildah-info's JSON output with YAML::XS since YAML is a superset of JSON
+	# read buildah-info's JSON output with YAML::XS since we already have it and YAML is a superset of JSON
 	my $yaml;
 	IPC::Run::run [prog("buildah"), "info"], \undef, \$yaml
 		or croak "info(): failed to run buildah - exit code $?" ;
@@ -497,7 +509,7 @@ sub info
 }
 
 # front-end to "buildah mount" subcommand
-# usage: $cb->mount({[notruncate => 1]}, container, ...)
+# usage: $mounts = $cb->mount({[notruncate => 1]}, container, ...)
 # public class method
 sub mount
 {
@@ -512,8 +524,9 @@ sub mount
 	my ($extract, @args) = process_params({name => 'mount', arg_flag => [qw(notruncate)]}, $params);
 
 	# run buildah-tag
-	$cb->buildah("mount", @args, @in_args);
-	return;
+	my $output = $cb->buildah({capture_outpit => 1}, "mount", @args, @in_args);
+	my %mounts = split(/\s+/sx, $output);
+	return \%mounts;
 }
 
 # front end to "buildah tag" subcommand
