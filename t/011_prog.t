@@ -9,9 +9,9 @@ use Test::More;
 use Container::Buildah;
 use Data::Dumper;
 
-# detect debug mode from environment
-# run as "DEBUG=1 perl -Ilib t/011_prog.t" to get debug output to STDERR
-my $debug_mode = exists $ENV{DEBUG};
+# detect debug level from environment
+# run as "DEBUG=4 perl -Ilib t/011_prog.t" to get debug output to STDERR
+my $debug_level = (exists $ENV{DEBUG}) ? int $ENV{DEBUG} : 0;
 
 # number of digits in test count (for text formatting)
 my $test_digits = 2; # default to 2, count later
@@ -81,13 +81,13 @@ sub test_prog
 	}
 
 	# run the prog function to locate the selected program's path
-	$debug_mode and warn "prog test for $progname";
+	($debug_level>0) and warn "prog test for $progname";
 	eval { $progpath = Container::Buildah::prog($progname) };
 	$exception = $@;
 
 	# test and report results
 	my $test_set = sprintf("path %0".$test_digits."d", $number);
-	if ($debug_mode) {
+	if ($debug_level>0) {
 		if (exists $prog->{$progname}) {
 			warn "comparing ".$prog->{$progname}." eq $progpath";
 		} else {
@@ -188,7 +188,7 @@ Container::Buildah::init_config(
 );
 
 # run tests
-my $cb = Container::Buildah->instance(($debug_mode ? (debug => 1) : ()));
+my $cb = Container::Buildah->instance(($debug_level ? (debug => $debug_level) : ()));
 Container::Buildah::prog(); # init cache
 {
 	for (my $i=0; $i<scalar @prog_tests; $i++) {
@@ -196,6 +196,6 @@ Container::Buildah::prog(); # init cache
 	}
 }
 
-$debug_mode and warn Dumper($cb);
+($debug_level>0) and warn Dumper($cb);
 
 1;

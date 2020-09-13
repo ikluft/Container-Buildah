@@ -10,9 +10,9 @@ use Carp qw(croak);
 use Data::Dumper;
 use Container::Buildah;
 
-# detect debug mode from environment
-# run as "DEBUG=1 perl -Ilib t/010_config.t" to get debug output to STDERR
-my $debug_mode = exists $ENV{DEBUG};
+# detect debug level from environment
+# run as "DEBUG=4 perl -Ilib t/010_config.t" to get debug output to STDERR
+my $debug_level = (exists $ENV{DEBUG}) ? int $ENV{DEBUG} : 0;
 
 # number of digits in test count (for text formatting)
 my $test_digits = 2; # default to 2, count later
@@ -38,7 +38,7 @@ sub test_process_params
 		};
 		my $exception = $@;
 		if ($exception) {
-			$debug_mode and warn "exception: ".Dumper($exception);
+			($debug_level>0) and warn "exception: ".Dumper($exception);
 		}
 
 		# process results of test
@@ -51,7 +51,7 @@ sub test_process_params
 				if (ref $test->{args} ne "ARRAY") {
 					croak "test $test_set: args must be an array";
 				}
-				$debug_mode and warn "args = ".join(" ", @args);
+				($debug_level>0) and warn "args = ".join(" ", @args);
 				is_deeply(\@args, $test->{args}, "$test_set: args are as expected");
 			}
 			
@@ -326,8 +326,8 @@ Container::Buildah::init_config(
 );
 
 # run tests
-my $cb = Container::Buildah->instance(($debug_mode ? (debug => 1) : ()));
-$debug_mode and warn Dumper(\@tests);
+my $cb = Container::Buildah->instance(($debug_level ? (debug => $debug_level) : ()));
+($debug_level>0) and warn Dumper(\@tests);
 {
 	for (my $i=0; $i<scalar @tests; $i++) {
 		test_process_params($cb, $i+1, $tests[$i]);

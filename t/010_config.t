@@ -9,9 +9,9 @@ use Test::More;
 use Container::Buildah;
 use Data::Dumper;
 
-# detect debug mode from environment
-# run as "DEBUG=1 perl -Ilib t/010_config.t" to get debug output to STDERR
-my $debug_mode = exists $ENV{DEBUG};
+# detect debug level from environment
+# run as "DEBUG=4 perl -Ilib t/010_config.t" to get debug output to STDERR
+my $debug_level = (exists $ENV{DEBUG}) ? int $ENV{DEBUG} : 0;
 
 # number of digits in test count (for text formatting)
 my $test_digits = 2; # default to 2, count later
@@ -303,8 +303,8 @@ plan tests => $test_total;
 $test_digits = length("".$test_total);
 
 # run tests
-my $cb = Container::Buildah->instance(($debug_mode ? (debug => 1) : ()));
-$debug_mode and warn Dumper(\@config_tests);
+my $cb = Container::Buildah->instance(($debug_level ? (debug => $debug_level) : ()));
+($debug_level>0) and warn Dumper(\@config_tests);
 {
 	for (my $i=0; $i<scalar @config_tests; $i++) {
 		test_config($cb, $i+1, $config_tests[$i]);
