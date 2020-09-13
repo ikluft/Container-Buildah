@@ -6,16 +6,19 @@ Change log for Container::Buildah
 [BUG FIXES]
 
 [DOCS]
-add POD docs
+	- add POD docs
 
 [ENHANCEMENTS]
+	- update cmd() method to capture command output
+	- add common process_param() method for buildah subcommand wrapper functions
+	- add missing wrapper functions corresponding to buildah subcommmands
 
 [MAJOR]
 
 [MINOR]
-code cleanup for Perl::Critic compliance at severity 3 (harsh) level
-split off Container::Buildah::Stage and Container::Buildah::Subcommand classes to their own files
-implement buildah subcommand wrapper functions
+	- code cleanup for Perl::Critic compliance at severity 3 (harsh) level
+	- split off Container::Buildah::Stage and Container::Buildah::Subcommand classes to their own files
+	- implement buildah subcommand wrapper functions
 
 [REVISION]
 
