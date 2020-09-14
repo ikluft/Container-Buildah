@@ -144,19 +144,24 @@ my @tests = (
 			{
 				name => "run false",
 				args => [Container::Buildah::prog("false")],
-				expected_exception => '^test_cmd\: non-zero status \(1\) from cmd',
+				expected_exception => '^test_cmd: non-zero status \(1\) from cmd',
 				retcode => 1,
 			},
 			{
 				name => "run sh exit 2",
 				args => ['/bin/sh', '-c', 'exit 2'],
-				expected_exception => '^test_cmd\: non-zero status \(2\) from cmd',
+				expected_exception => '^test_cmd: non-zero status \(2\) from cmd',
 				retcode => 2,
 			},
 			{
 				name => "nonexistent command",
 				args => ['/nonexistent/path/to/bin/foo'],
 				expected_exception => '^test_cmd: file not found: /nonexistent/path/to/bin/foo',
+			},
+			{
+				name => "undef disallowed in args",
+				args => [Container::Buildah::prog("true"), undef],
+				expected_exception => '^test_cmd: disallow_undef: found undefined value in parameter list item 1:',
 			},
 		],
 	},

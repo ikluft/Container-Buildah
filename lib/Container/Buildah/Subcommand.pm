@@ -342,11 +342,13 @@ sub cmd
 	my ($class_or_obj, $opts, @in_args) = @_;
 	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $name = (exists $opts->{name}) ? $opts->{name} : "cmd";
-	Container::Buildah::disallow_undef(\@in_args);
 
 	# exception-handling wrapper
 	my $outstr;
 	eval {
+		# disallow undef in in_args
+		Container::Buildah::disallow_undef(\@in_args);
+
 		# use IPC::Run to capture or suppress output as requested
 		$cb->debug({level => 4}, "cmd $name ".join(" ", @in_args));
 		if ($opts->{capture_output} // 0) {
