@@ -30,6 +30,7 @@ sub test_cmd
 		$zero_flag = $nonzero_flag = 0;
 		$nonzero_value = undef;
 		my $opts = $group->{opts} // {};
+		$opts->{name} = 'test_cmd';
 
 		# generate name of test set including test group number
 		(exists $test->{name})
@@ -143,19 +144,19 @@ my @tests = (
 			{
 				name => "run false",
 				args => [Container::Buildah::prog("false")],
-				expected_exception => '^cmd\: non-zero status \(1\) from cmd',
+				expected_exception => '^test_cmd\: non-zero status \(1\) from cmd',
 				retcode => 1,
 			},
 			{
 				name => "run sh exit 2",
 				args => ['/bin/sh', '-c', 'exit 2'],
-				expected_exception => '^cmd\: non-zero status \(2\) from cmd',
+				expected_exception => '^test_cmd\: non-zero status \(2\) from cmd',
 				retcode => 2,
 			},
 			{
 				name => "nonexistent command",
 				args => ['/nonexistent/path/to/bin/foo'],
-				expected_exception => '^cmd: file not found: /nonexistent/path/to/bin/foo',
+				expected_exception => '^test_cmd: file not found: /nonexistent/path/to/bin/foo',
 			},
 		],
 	},
