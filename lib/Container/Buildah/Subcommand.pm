@@ -344,16 +344,20 @@ sub cmd
 	my $name = (exists $opts->{name}) ? $opts->{name} : "cmd";
 	Container::Buildah::disallow_undef(\@in_args);
 
-	my $retval;
+	# exception-handling wrapper
+	my $outstr;
 	eval {
+		# use IPC::Run to capture or suppress output as requested
 		$cb->debug({level => 4}, "cmd $name ".join(" ", @in_args));
 		if ($opts->{capture_output} // 0) {
-			IPC::Run::run(\@in_args, '<', \undef, '>', \$retval);
+			IPC::Run::run(\@in_args, '<', \undef, '>', \$outstr);
 		} elsif ($opts->{suppress_output} // 0) {
 			IPC::Run::run(\@in_args, '<', \undef, '>&', "/dev/null");
 		} else {
 			IPC::Run::run(\@in_args, '<', \undef, '>', \*STDOUT);
 		}
+
+		# process result codes
 		if ($? == -1) {
 			confess "failed to execute command (".join(" ", @in_args)."): $!";
 		}
@@ -361,13 +365,20 @@ sub cmd
 			confess sprintf "command (".join(" ", @in_args)." child died with signal %d, %s coredump\n",
 				($? & 127),  ($? & 128) ? 'with' : 'without';
 		}
-		if ($? >> 8 != 0) {
+		my $retcode = $? >> 8;
+		if (exists $opts->{save_retcode} and ref $opts->{save_retcode} eq "SCALAR") {
+			${$opts->{save_retcode}} = $retcode; # save return code via a scalar ref for testing
+		}
+		if ($retcode != 0) {
+			# invoke callback for nonzero result, and pass it the result code
+			# this may be used to prevent exceptions for commands that return specific unharmful nonzero results
 			if (exists $opts->{nonzero} and ref $opts->{nonzero} eq "CODE") {
-				&{$opts->{nonzero}}($? >> 8);
+				&{$opts->{nonzero}}($retcode);
 			} else {
-				confess "non-zero status (".($? >> 8).") from cmd ".join(" ", @in_args);
+				confess "non-zero status ($retcode) from cmd ".join(" ", @in_args);
 			}
 		} elsif (exists $opts->{zero} and ref $opts->{zero} eq "CODE") {
+			# invoke callback for zero result
 			&{$opts->{zero}}();
 		}
 		1;
@@ -376,7 +387,7 @@ sub cmd
 			confess "$name: ".$@;
 		}
 	};
-	return $retval;
+	return $outstr;
 }
 
 # run buildah command with parameters
