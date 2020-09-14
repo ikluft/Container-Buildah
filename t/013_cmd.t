@@ -62,7 +62,7 @@ sub test_cmd
 			is($exception, '', "$test_set: no exceptions");
 
 			if (exists $test->{outstr}) {
-				like($outstr, qr/$test->{outstr}/, "$test_set: output text as expected");
+				like($outstr, qr/$test->{outstr}/, "$test_set: output text");
 			}
 		} else {
 			# exception expected
@@ -72,24 +72,24 @@ sub test_cmd
 
 		# check return code
 		if (exists $test->{retcode}) {
-			is($retcode, $test->{retcode}, "$test_set: command return code as expected");
+			is($retcode, $test->{retcode}, "$test_set: return code");
 		}
 
 		# return-code callback tests: test callbacks for zero flag, nonzero flag & nonzero value
 		if ($test->{nonzero_set} // 0) {
-			is($nonzero_flag, 1, "$test_set: nonzero flag set as expected");
+			is($nonzero_flag, 1, "$test_set: nonzero flag set");
 		}
 		if ($test->{nonzero_unset} // 0) {
-			is($nonzero_flag, 0, "$test_set: nonzero flag unset as expected");
+			is($nonzero_flag, 0, "$test_set: nonzero flag unset");
 		}
 		if ($test->{zero_set} // 0) {
-			is($zero_flag, 1, "$test_set: zero flag set as expected");
+			is($zero_flag, 1, "$test_set: zero flag set");
 		}
 		if ($test->{zero_unset} // 0) {
-			is($zero_flag, 0, "$test_set: zero flag unset as expected");
+			is($zero_flag, 0, "$test_set: zero flag unset");
 		}
 		if (exists $test->{nonzero_value}) {
-			is($nonzero_value, $test->{nonzero_value}, "$test_set: nonzero value as expected");
+			is($nonzero_value, $test->{nonzero_value}, "$test_set: nonzero value");
 		}
 	}
 }
@@ -167,11 +167,13 @@ my @tests = (
 			{
 				name => "capture echo empty",
 				args => [Container::Buildah::prog("echo")],
+				retcode => 0,
 				outstr => '^$',
 			},
 			{
 				name => "capture echo string",
 				args => [Container::Buildah::prog("echo"), "foo"],
+				retcode => 0,
 				outstr => "foo",
 			},
 		],
@@ -185,12 +187,14 @@ my @tests = (
 			{
 				name => "callback with return 0",
 				args => [Container::Buildah::prog("true")],
+				retcode => 0,
 				zero_set => 1,
 				nonzero_unset => 1,
 			},
 			{
 				name => "callback with return 1",
 				args => [Container::Buildah::prog("false")],
+				retcode => 1,
 				nonzero_set => 1,
 				zero_unset => 1,
 				nonzero_value => 1,
@@ -198,6 +202,7 @@ my @tests = (
 			{
 				name => "callback with return 2",
 				args => ['/bin/sh', '-c', 'exit 2'],
+				retcode => 2,
 				nonzero_set => 1,
 				zero_unset => 1,
 				nonzero_value => 2,
