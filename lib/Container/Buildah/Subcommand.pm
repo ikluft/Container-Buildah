@@ -400,15 +400,15 @@ sub buildah
 	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 
 	# collect options to pass along to cmd() method
-	my $params = {};
+	my $opts = {};
 	if (ref $in_args[0] eq "HASH") {
-		$params = shift @in_args;
+		$opts = shift @in_args;
 	}
-	$params->{name} = "buildah";
+	$opts->{name} = "buildah";
 
 	Container::Buildah::disallow_undef(\@in_args);
 	$cb->debug({level => 3}, "buildah: args = ".join(" ", @in_args));
-	return $cb->cmd($params, prog("buildah"), @in_args);
+	return $cb->cmd($opts, prog("buildah"), @in_args);
 }
 
 #
