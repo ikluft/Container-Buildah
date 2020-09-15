@@ -63,12 +63,12 @@ sub test_buildah
 			is($exception, '', "$test_set: no exceptions");
 
 			if (exists $test->{outstr}) {
-				like($outstr, qr/$test->{outstr}/, "$test_set: output text");
+				like($outstr, qr/$test->{outstr}/s, "$test_set: output text");
 			}
 		} else {
 			# exception expected
 			my $expected_exception = $test->{expected_exception};
-			like($exception, qr/$expected_exception/, "$test_set: expected exception");
+			like($exception, qr/$expected_exception/s, "$test_set: expected exception");
 		}
 
 		# check return code
@@ -135,14 +135,51 @@ my $cb = Container::Buildah->instance(($debug_level ? (debug => $debug_level) : 
 my @tests = (
 	{
 		opts => {
+			suppress_output => 1,
+		},
+		tests => [
+			{
+				name => "nonexistent subcommand",
+				args => ["blarg"],
+				retcode => 125,
+				expected_exception => 'buildah: non-zero status \(125\) from cmd',
+			},
+			{
+				name => "nonexistent option",
+				args => ["--blarg"],
+				retcode => 125,
+				expected_exception => 'buildah: non-zero status \(125\) from cmd',
+			},
+		],
+	},
+	{
+		opts => {
 			capture_output => 1,
 		},
 		tests => [
+			{
+				name => "no args",
+				args => [],
+				retcode => 0,
+				outstr => 'Usage:', # minimal text search for help output which probably won't be broken
+			},
+			{
+				name => "help",
+				args => ["help"],
+				retcode => 0,
+				outstr => 'Usage:', # minimal text search for help output which probably won't be broken
+			},
 			{
 				name => "version",
 				args => ["--version"],
 				retcode => 0,
 				outstr => 'buildah version [0-9]+\.[0-9]+\.[0-9]+',
+			},
+			{
+				name => "info",
+				args => ["info"],
+				retcode => 0,
+				outstr => '^\{.*"host":.*"os": "linux",.*"rootless":.*"store":.*"ContainerStore":.*"ImageStore":.*\}$',
 			},
 		],
 	},
