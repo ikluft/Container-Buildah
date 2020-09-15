@@ -50,7 +50,7 @@ sub test_cmd
 			$opts->{save_retcode} = \$retcode;
 		}
 		eval {
-			$outstr = $cb->cmd($opts // {}, @{$test->{args}});
+			$outstr = $cb->cmd($opts, @{$test->{args}});
 		};
 		my $exception = $@;
 		if ($exception) {
