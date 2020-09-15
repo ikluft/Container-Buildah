@@ -161,25 +161,25 @@ my @tests = (
 				name => "no args",
 				args => [],
 				retcode => 0,
-				outstr => 'Usage:', # minimal text search for help output which probably won't be broken
+				outstr => 'Usage:', # minimal text search for help output which software updates probably won't break
 			},
 			{
-				name => "help",
+				name => "help subcommand",
 				args => ["help"],
 				retcode => 0,
-				outstr => 'Usage:', # minimal text search for help output which probably won't be broken
+				outstr => 'Usage:', # minimal text search for help output which software updates probably won't break
 			},
 			{
-				name => "version",
+				name => "version subcommand",
 				args => ["--version"],
 				retcode => 0,
 				outstr => 'buildah version [0-9]+\.[0-9]+\.[0-9]+',
 			},
 			{
-				name => "info",
+				name => "info subcommand",
 				args => ["info"],
 				retcode => 0,
-				outstr => '^\{.*"host":.*"os": "linux",.*"rootless":.*"store":.*"ContainerStore":.*"ImageStore":.*\}$',
+				outstr => '^\{.*"host":.*"os":.*"rootless":.*"store":.*"ContainerStore":.*"ImageStore":.*\}$',
 			},
 		],
 	},
