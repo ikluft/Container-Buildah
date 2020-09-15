@@ -17,7 +17,7 @@ my $debug_level = (exists $ENV{DEBUG}) ? int $ENV{DEBUG} : 0;
 # number of digits in test count (for text formatting)
 my $test_digits = 2; # default to 2, count later
 
-# test Container::Buildah::process_params()
+# test Container::Buildah::Subcommand::process_params()
 sub test_process_params
 {
 	my $cb = shift;
