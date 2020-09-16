@@ -465,7 +465,7 @@ sub bud
 }
 
 # front end to "buildah containers" subcommand
-# usage: $cb->containers({name => value, ...})
+# usage: $str = $cb->containers({name => value, ...})
 # public class method
 sub containers
 {
@@ -482,9 +482,8 @@ sub containers
 		arg_str => [qw(filter format)],
 		}, $params);
 
-	# run buildah-tag
-	$cb->buildah("containers", @args);
-	return;
+	# run command and return output
+	return $cb->buildah({capture_output => 1}, "containers", @args);
 }
 
 # front-end to "buildah from" subcommand
@@ -521,7 +520,7 @@ sub from
 }
 
 # front end to "buildah images" subcommand
-# usage: $cb->images({name => value, ...})
+# usage: $str = $cb->images({name => value, ...})
 # public class method
 sub images
 {
@@ -538,9 +537,8 @@ sub images
 		arg_str => [qw(filter format)],
 		}, $params);
 
-	# run buildah-tag
-	$cb->buildah("images", @args);
-	return;
+	# run command and return output
+	return $cb->buildah({capture_output => 1}, "images", @args);
 }
 
 # front end to "buildah info" subcommand
@@ -582,7 +580,7 @@ sub mount
 	my ($extract, @args) = process_params({name => 'mount', arg_flag => [qw(notruncate)]}, $params);
 
 	# run buildah-tag
-	my $output = $cb->buildah({capture_outpit => 1}, "mount", @args, @in_args);
+	my $output = $cb->buildah({capture_output => 1}, "mount", @args, @in_args);
 	my %mounts = split(/\s+/sx, $output);
 	return \%mounts;
 }
