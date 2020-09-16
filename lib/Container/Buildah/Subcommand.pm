@@ -442,7 +442,7 @@ sub buildah
 # ✓ tag
 # ✓ umount
 # ✓ unshare
-# - version
+# ✓ version
 
 # front end to "buildah bud" (build under dockerfile) subcommand
 # usage: $cb->bud({name => value, ...}, context)
@@ -749,6 +749,30 @@ sub unshare
 	# run buildah-unshare command
 	$cb->buildah("unshare", @args, "--", @in_args);
 	return;
+}
+
+# front end to "buildah version" subcommand
+# usage: $str = $cb->version([{debug => 1, format => format}])
+# this uses YAML::XS with the assumption that buildah-version's JSON output is a proper subset of YAML
+# public class method
+sub version
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my ($extract, @args) = process_params({name => 'version',
+		extract => [qw(suppress_error nonzero zero)],
+		}, $params);
+
+	# run command and return output
+	my $yaml = $cb->buildah({capture_output => 1, %$extract}, "version", @args);
+	my $version = YAML::XS::Load($yaml);
+	return $version;
 }
 
 1;
