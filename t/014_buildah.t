@@ -136,6 +136,7 @@ my @tests = (
 	{
 		opts => {
 			suppress_output => 1,
+			suppress_error => 1,
 		},
 		tests => [
 			{

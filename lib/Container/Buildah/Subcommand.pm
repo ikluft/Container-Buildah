@@ -351,13 +351,17 @@ sub cmd
 
 		# use IPC::Run to capture or suppress output as requested
 		$cb->debug({level => 4}, "cmd $name ".join(" ", @in_args));
+		my $outdest = \*STDOUT;
+		my $errdest = \*STDERR;
 		if ($opts->{capture_output} // 0) {
-			IPC::Run::run(\@in_args, '<', \undef, '>', \$outstr);
+			$outdest = \$outstr;
 		} elsif ($opts->{suppress_output} // 0) {
-			IPC::Run::run(\@in_args, '<', \undef, '>&', "/dev/null");
-		} else {
-			IPC::Run::run(\@in_args, '<', \undef, '>', \*STDOUT);
+			$outdest = "/dev/null";
 		}
+		if ($opts->{suppress_error} // 0) {
+			$errdest = "/dev/null";
+		}
+		IPC::Run::run(\@in_args, '<', \undef, '>', $outdest, '2>', $errdest);
 
 		# process result codes
 		if ($? == -1) {
@@ -422,7 +426,7 @@ sub buildah
 # ✓ from
 # ✓ images
 # ✓ info
-# - inspect
+# ✓ inspect
 # - manifest_add
 # - manifest_annotate
 # - manifest_create
@@ -483,12 +487,13 @@ sub containers
 
 	# process parameters
 	my ($extract, @args) = process_params({name => 'containers',
+		extract => [qw(suppress_error nonzero zero)],
 		arg_flag => [qw(all json noheading notruncate quiet)],
 		arg_str => [qw(filter format)],
 		}, $params);
 
 	# run command and return output
-	return $cb->buildah({capture_output => 1}, "containers", @args);
+	return $cb->buildah({capture_output => 1, %$extract}, "containers", @args);
 }
 
 # front-end to "buildah from" subcommand
@@ -538,12 +543,13 @@ sub images
 
 	# process parameters
 	my ($extract, @args) = process_params({name => 'images',
+		extract => [qw(suppress_error nonzero zero)],
 		arg_flag => [qw(all digests json history noheading no-trunc notruncate quiet)],
 		arg_str => [qw(filter format)],
 		}, $params);
 
 	# run command and return output
-	return $cb->buildah({capture_output => 1}, "images", @args);
+	return $cb->buildah({capture_output => 1, %$extract}, "images", @args);
 }
 
 # front end to "buildah info" subcommand
@@ -561,14 +567,44 @@ sub info
 
 	# process parameters
 	my ($extract, @args) = process_params({name => 'info',
+		extract => [qw(suppress_error nonzero zero)],
 		arg_flag => [qw(debug)],
 		arg_str => [qw(format)],
 		}, $params);
 
 	# run command and return output
-	my $yaml = $cb->buildah({capture_output => 1}, "info", @args);
+	my $yaml = $cb->buildah({capture_output => 1, %$extract}, "info", @args);
 	my $info = YAML::XS::Load($yaml);
 	return $info;
+}
+
+# front end to "buildah inspect" subcommand
+# usage: $str = $cb->inspect([{option => value, ...}])
+# this uses YAML::XS with the assumption that buildah-inspect's JSON output is a proper subset of YAML
+# public class method
+sub inspect
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my $object_id = $in_args[0];
+	if (not defined $object_id) {
+		croak "object id parameter missing in call to 'inspect' method";
+	}
+	my ($extract, @args) = process_params({name => 'inspect',
+		extract => [qw(suppress_error nonzero zero)],
+		arg_str => [qw(format type)],
+		}, $params);
+
+	# run command and return output
+	my $yaml = $cb->buildah({capture_output => 1, %$extract}, "inspect", @args,  $object_id);
+	my $inspect = YAML::XS::Load($yaml);
+	return $inspect;
 }
 
 # front-end to "buildah mount" subcommand
@@ -584,10 +620,13 @@ sub mount
 	}
 
 	# process parameters
-	my ($extract, @args) = process_params({name => 'mount', arg_flag => [qw(notruncate)]}, $params);
+	my ($extract, @args) = process_params({name => 'mount',
+		extract => [qw(suppress_error nonzero zero)],
+		arg_flag => [qw(notruncate)]
+		}, $params);
 
 	# run buildah-tag
-	my $output = $cb->buildah({capture_output => 1}, "mount", @args, @in_args);
+	my $output = $cb->buildah({capture_output => 1, %$extract}, "mount", @args, @in_args);
 	my %mounts = split(/\s+/sx, $output);
 	return \%mounts;
 }
