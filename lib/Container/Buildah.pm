@@ -227,7 +227,7 @@ sub expand
 	my $output;
 	my $cb = Container::Buildah->instance();
 	$cb->{template}->process(\$value, $cb->{config}, \$output);
-	$cb->debug("expand: $value -> $output");
+	$cb->debug({level => 4}, "expand: $value -> $output");
 
 	# expand templates as long as any remain, up to 10 iterations
 	my $count=0;
@@ -235,7 +235,7 @@ sub expand
 		$value = $output;
 		$output = ""; # clear because template concatenates to it
 		$cb->{template}->process(\$value, $cb->{config}, \$output);
-		$cb->debug("expand ($count): $value -> $output");
+		$cb->debug({level => 4}, "expand ($count): $value -> $output");
 	}
 	return $output;
 }
@@ -315,12 +315,11 @@ sub set_debug
 
 # get OCI-recognized CPU architecture string for this system
 # includes tweak to add v7 to armv7
-# private class function
+# private class method
 sub get_arch
 {
-	my $arch;
-	IPC::Run::run [prog("buildah"), "info", "--format", q({{.host.arch}})], \undef, \$arch
-		or croak "get_arch: failed to run buildah - exit code $?" ;
+	my $cb = shift;
+	my $arch = $cb->info({format => q({{.host.arch}})});
 	if ($arch eq 'arm') {
 		my $cpuinfo = File::Slurp::read_file('/proc/cpuinfo', err_mode => "croak");
 		if (/ ^ CPU \s architecture \s* : \s* (.*) $ /x) {
@@ -329,6 +328,7 @@ sub get_arch
 			}
 		}
 	}
+	$cb->debug({level => 1}, "get_arch => $arch");
 	return $arch;
 }
 
@@ -419,12 +419,12 @@ sub build_order_deps
 	my $Source = Algorithm::Dependency::Source::HoA->new( \%deps );
 	my $algdep = Algorithm::Dependency->new(source => $Source);
 	my $order = $algdep->schedule_all;
-	$cb->debug("build order (computed): ".join(" ", @$order));
+	$cb->debug({level => 1}, "build order (computed): ".join(" ", @$order));
 	$cb->{order} = {};
 	for (my $i=0; $i < scalar @$order; $i++) {
 		$cb->{order}{$order->[$i]} = $i;
 	}
-	$cb->debug("build order (data): ".join(" ", grep {$_."=>".$cb->{order}{$_}} keys %{$cb->{order}}));
+	$cb->debug({level => 1}, "build order (data): ".join(" ", grep {$_."=>".$cb->{order}{$_}} keys %{$cb->{order}}));
 	return;
 }
 
@@ -550,7 +550,7 @@ sub main
 
 	# process config
 	$self->{config}{opts} = \%cmd_opts;
-	$self->{config}{arch} = get_arch();
+	$self->{config}{arch} = $self->get_arch();
 	if (exists $init_config{required_config}
 		and ref $init_config{required_config} eq "ARRAY")
 	{

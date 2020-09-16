@@ -422,8 +422,13 @@ sub buildah
 # ✓ from
 # ✓ images
 # ✓ info
-# - inspect (for image or container)
-# - manifest-* later
+# - inspect
+# - manifest_add
+# - manifest_annotate
+# - manifest_create
+# - manifest_inspect
+# - manifest_push
+# - manifest_remove
 # ✓ mount
 # - pull
 # - push
@@ -542,24 +547,26 @@ sub images
 }
 
 # front end to "buildah info" subcommand
-# usage: $cb->info([{format => format}])
+# usage: $str = $cb->info([{debug => 1, format => format}])
 # this uses YAML::XS with the assumption that buildah-info's JSON output is a proper subset of YAML
 # public class method
 sub info
 {
-	my ($class_or_obj, $param_ref) = @_;
+	my ($class_or_obj, @in_args) = @_;
 	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 	my $params = {};
-	if ((defined $param_ref) and (ref $param_ref eq "HASH")) {
-		$params = %$param_ref;
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
 	}
 
-	# TODO add --format queries; until then no parameter processing is done
-	
-	# read buildah-info's JSON output with YAML::XS since we already have it and YAML is a superset of JSON
-	my $yaml;
-	IPC::Run::run [prog("buildah"), "info"], \undef, \$yaml
-		or croak "info(): failed to run buildah - exit code $?" ;
+	# process parameters
+	my ($extract, @args) = process_params({name => 'info',
+		arg_flag => [qw(debug)],
+		arg_str => [qw(format)],
+		}, $params);
+
+	# run command and return output
+	my $yaml = $cb->buildah({capture_output => 1}, "info", @args);
 	my $info = YAML::XS::Load($yaml);
 	return $info;
 }
