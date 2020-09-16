@@ -458,6 +458,7 @@ sub bud
 
 	# process parameters
 	my ($extract, @args) = process_params({name => 'bud',
+		extract => [qw(suppress_output suppress_error nonzero zero)],
 		arg_flag => [qw(compress disable-content-trust no-cache pull pull-always pull-never quiet)],
 		arg_flag_str => [qw(disable-compression force-rm layers rm squash tls-verify)],
 		arg_str => [qw(arch authfile cache-from cert-dir cgroup-parent cni-config-dir cni-plugin-path cpu-period
@@ -469,7 +470,7 @@ sub bud
 		}, $params);
 
 	# run buildah-tag
-	$cb->buildah("bud", @args, @in_args);
+	$cb->buildah($extract, "bud", @args, @in_args);
 	return;
 }
 
@@ -510,6 +511,7 @@ sub from
 
 	# process parameters
 	my ($extract, @args) = process_params({name => 'from',
+		extract => [qw(suppress_output suppress_error nonzero zero)],
 		arg_flag => [qw(pull-always pull-never tls-verify quiet)],
 		arg_flag_str => [qw(http-proxy pull)],
 		arg_str => [qw(authfile cert-dir cgroup-parent cidfile cni-config-dir cni-plugin-path cpu-period cpu-quota
@@ -525,7 +527,7 @@ sub from
 	}
 
 	# run command
-	$cb->buildah("from", @args, $image);
+	$cb->buildah($extract, "from", @args, $image);
 	return;
 }
 
@@ -644,12 +646,15 @@ sub tag
 	}
 
 	# process parameters
-	my ($extract, @args) = process_params({name => 'tag', extract => [qw(image)]}, $params);
+	my ($extract, @args) = process_params({name => 'tag',
+		extract => [qw(image suppress_output suppress_error nonzero zero)],
+		}, $params);
 	my $image = $extract->{image}
 		or croak "tag: image parameter required";
+	delete $extract->{image};
 
 	# run buildah-tag
-	$cb->buildah("tag", $image, @in_args);
+	$cb->buildah($extract, "tag", $image, @in_args);
 	return;
 }
 
@@ -667,11 +672,15 @@ sub rm
 	}
 
 	# process parameters
-	my ($extract, @args) = process_params({name => 'rm', arg_flag => [qw(all)], exclusive => [qw(all)]}, $params);
+	my ($extract, @args) = process_params({name => 'rm',
+		extract => [qw(suppress_output suppress_error nonzero zero)],
+		arg_flag => [qw(all)],
+		exclusive => [qw(all)]
+		}, $params);
 
 	# remove containers listed in arguments
 	# buildah will error out if --all is provided with container names/ids
-	$cb->buildah("rm", @args, @in_args);
+	$cb->buildah($extract, "rm", @args, @in_args);
 	return;
 }
 
@@ -690,12 +699,15 @@ sub rmi
 	}
 
 	# process parameters
-	my ($extract, @args) = process_params({name => 'rmi', arg_flag => [qw(all prune force)],
-		exclusive => [qw(all prune)]}, $params);
+	my ($extract, @args) = process_params({name => 'rmi',
+		extract => [qw(suppress_output suppress_error nonzero zero)],
+		arg_flag => [qw(all prune force)],
+		exclusive => [qw(all prune)],
+		}, $params);
 
 	# remove images listed in arguments
 	# buildah will error out if --all or --prune are provided with image names/ids
-	$cb->buildah("rmi", @args, @in_args);
+	$cb->buildah($extract, "rmi", @args, @in_args);
 	return;
 }
 
@@ -712,10 +724,14 @@ sub umount
 	}
 
 	# process parameters
-	my ($extract, @args) = process_params({name => 'umount', arg_flag => [qw(all)]}, exclusive => [qw(all)], $params);
+	my ($extract, @args) = process_params({name => 'umount',
+		extract => [qw(suppress_output suppress_error nonzero zero)],
+		arg_flag => [qw(all)],
+		exclusive => [qw(all)],
+		}, $params);
 
 	# run buildah-tag
-	$cb->buildah("umount", @args, @in_args);
+	$cb->buildah($extract, "umount", @args, @in_args);
 	return;
 }
 
@@ -733,21 +749,25 @@ sub unshare
 	}
 
 	# process parameters
-	my ($extract, @args) = process_params({name => 'unshare', extract => [qw(container envname)],
-		arg_str => [qw(mount)]}, $params);
+	my ($extract, @args) = process_params({name => 'unshare',
+		extract => [qw(container envname suppress_output suppress_error nonzero zero)],
+		arg_str => [qw(mount)],
+		}, $params);
 
 	# construct arguments for buildah-unshare command
 	# note: --mount may be specified directly or constructed from container/envname - use only one way, not both
 	if (exists $extract->{container}) {
 		if (exists $extract->{envname}) {
 			push @args, "--mount", $extract->{envname}."=".$extract->{container};
+			delete $extract->{envname};
 		} else {
 			push @args, "--mount", $extract->{container};
 		}
+		delete $extract->{container};
 	}
 
 	# run buildah-unshare command
-	$cb->buildah("unshare", @args, "--", @in_args);
+	$cb->buildah($extract, "unshare", @args, "--", @in_args);
 	return;
 }
 
