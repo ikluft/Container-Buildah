@@ -417,8 +417,8 @@ sub buildah
 #
 
 # TODO list for wrapper functions
-# - bud
-# - containers
+# ✓ bud
+# ✓ containers
 # ✓ from
 # - images
 # ✓ info
@@ -462,7 +462,30 @@ sub bud
 	# run buildah-tag
 	$cb->buildah("bud", @args, @in_args);
 	return;
+}
 
+# front end to "buildah containers" subcommand
+# usage: $cb->containers({name => value, ...}, context)
+# public class method
+sub containers
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my ($extract, @args) = process_params({name => 'containers',
+		arg_flag => [qw(all json noheading notruncate quiet)],
+		arg_str => [qw(filter format)],
+		arg_array => [qw()],
+		}, $params);
+
+	# run buildah-tag
+	$cb->buildah("containers", @args);
+	return;
 }
 
 # front-end to "buildah from" subcommand
