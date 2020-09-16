@@ -420,7 +420,7 @@ sub buildah
 # ✓ bud
 # ✓ containers
 # ✓ from
-# - images
+# ✓ images
 # ✓ info
 # - inspect (for image or container)
 # - manifest-* later
@@ -465,7 +465,7 @@ sub bud
 }
 
 # front end to "buildah containers" subcommand
-# usage: $cb->containers({name => value, ...}, context)
+# usage: $cb->containers({name => value, ...})
 # public class method
 sub containers
 {
@@ -480,7 +480,6 @@ sub containers
 	my ($extract, @args) = process_params({name => 'containers',
 		arg_flag => [qw(all json noheading notruncate quiet)],
 		arg_str => [qw(filter format)],
-		arg_array => [qw()],
 		}, $params);
 
 	# run buildah-tag
@@ -518,6 +517,29 @@ sub from
 
 	# run command
 	$cb->buildah("from", @args, $image);
+	return;
+}
+
+# front end to "buildah images" subcommand
+# usage: $cb->images({name => value, ...})
+# public class method
+sub images
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my ($extract, @args) = process_params({name => 'images',
+		arg_flag => [qw(all digests json history noheading no-trunc notruncate quiet)],
+		arg_str => [qw(filter format)],
+		}, $params);
+
+	# run buildah-tag
+	$cb->buildah("images", @args);
 	return;
 }
 
