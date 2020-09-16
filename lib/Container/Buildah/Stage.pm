@@ -318,18 +318,6 @@ sub copy
 	return;
 }
 
-# front-end to "buildah mount" subcommand
-# usage: $path = $self->mount()
-# public instance method
-sub mount
-{
-	my ($self, @in_args) = @_;
-	$self->debug({level => 2}, @in_args);
-
-	# TODO
-	confess "unimplemented";
-}
-
 # front-end to "buildah run" subcommand
 # usage: $self->run( [{param => value, ...}], [command], ... )
 # Command parameter can be an array of strings for one command, or array of arrays of strings for multiple commands.
@@ -370,18 +358,6 @@ sub run
 		$cb->buildah("run", @args, $self->container_name, '--', @$command);
 	}
 	return;
-}
-
-# front-end to "buildah umount" subcommand
-# usage: $self->umount()
-# public instance method
-sub umount
-{
-	my ($self, @in_args) = @_;
-	$self->debug({level => 2}, @in_args);
-
-	# TODO
-	confess "unimplemented";
 }
 
 #
@@ -709,8 +685,6 @@ This is a wrapper around the Container::Buildah::debug() method, which adds a la
 
 =method copy
 
-=method mount
-
 =method run ( {option => value, ...}, [command, arg, ...] | [[command, arg, ...], ...] )
 
 The option parameter is a hash reference with command-line options for buildah-run.
@@ -718,8 +692,6 @@ For options with shortcut aliases, only the long form is recognized here in orde
 
 The command parameter can be an array of strings for one command, or array of arrays of strings for multiple commands.
 This applies the same command-line arguments to each command it runs.
-
-=method umount
 
 =head1 BUGS AND LIMITATIONS
 
