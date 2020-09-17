@@ -434,9 +434,9 @@ sub buildah
 # - manifest_push
 # - manifest_remove
 # ✓ mount
-# - pull
-# - push
-# - rename
+# ✓ pull
+# ✓ push
+# ✓ rename
 # ✓ rm
 # ✓ rmi
 # ✓ tag
@@ -581,7 +581,7 @@ sub info
 }
 
 # front end to "buildah inspect" subcommand
-# usage: $str = $cb->inspect([{option => value, ...}])
+# usage: $str = $cb->inspect([{option => value, ...}], object_id)
 # this uses YAML::XS with the assumption that buildah-inspect's JSON output is a proper subset of YAML
 # public class method
 sub inspect
@@ -632,6 +632,87 @@ sub mount
 	my %mounts = split(/\s+/sx, $output);
 	return \%mounts;
 }
+
+# front end to "buildah pull" subcommand
+# usage: $str = $cb->pull([{option => value, ...}], image)
+# public class method
+sub pull
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my $image = $in_args[0];
+	if (not defined $image) {
+		croak "object id parameter missing in call to 'pull' method";
+	}
+	my ($extract, @args) = process_params({name => 'pull',
+		extract => [qw(suppress_error nonzero zero)],
+		arg_flag => [qw(all-tags remove-signatures quiet tls-verify)],
+		arg_str => [qw(authfile blob-cache cert-dir creds override-os override-arch signature-policy)],
+		arg_array => [qw(decryption-key)],
+		}, $params);
+
+	# run command and return output
+	my $pull = $cb->buildah({capture_output => 1, %$extract}, "pull", @args,  $image);
+	return $pull;
+}
+
+# front end to "buildah push" subcommand
+# named push_image() to de-conflict with Perl builtin push, but Container::Buildah links push() as an alias
+# usage: $str = $cb->push_image([{option => value, ...}], image, [destination])
+# or:    $str = $cb->push([{option => value, ...}], image, [destination])
+# public class method
+sub push_image
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my ($extract, @args) = process_params({name => 'push_image',
+		extract => [qw(suppress_output suppress_error nonzero zero)],
+		arg_flag => [qw(disable-compression quiet remove-signatures tls-verify)],
+		arg_str => [qw(authfile blob-cache cert-dir creds digestfile format sign-by signature-policy)],
+		arg_array => [qw(encryption-key encrypt-layer)],
+		}, $params);
+
+	# run command and return output
+	$cb->buildah({%$extract}, "push_image", @args,  @in_args);
+	return;
+}
+
+# front end to "buildah rename" subcommand
+# named rename_image() to de-conflict with Perl builtin rename, but Container::Buildah links push() as an alias
+# usage: $str = $cb->rename_image(image, new-name)
+# or:    $str = $cb->rename(image, new-name)
+# public class method
+sub rename_image
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my ($extract, @args) = process_params({name => 'rename_image',
+		extract => [qw(suppress_output suppress_error nonzero zero)],
+		}, $params);
+
+	# run command and return output
+	$cb->buildah({%$extract}, "rename_image", @in_args);
+	return;
+}
+
 
 # front end to "buildah tag" subcommand
 # usage: $cb->tag({image => "image_name"}, new_name, ...)
@@ -758,10 +839,10 @@ sub unshare
 	# note: --mount may be specified directly or constructed from container/envname - use only one way, not both
 	if (exists $extract->{container}) {
 		if (exists $extract->{envname}) {
-			push @args, "--mount", $extract->{envname}."=".$extract->{container};
+			CORE::push @args, "--mount", $extract->{envname}."=".$extract->{container};
 			delete $extract->{envname};
 		} else {
-			push @args, "--mount", $extract->{container};
+			CORE::push @args, "--mount", $extract->{container};
 		}
 		delete $extract->{container};
 	}

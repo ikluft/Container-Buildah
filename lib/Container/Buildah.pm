@@ -32,7 +32,10 @@ Container::Buildah::Subcommand->import(qw(process_params prog));
 # methods delegated to Container::Buildah::Subcommand that need to be imported into this class' symbol table
 # (methods should not be handled by Exporter - we are doing the same thing but keeping it private to the class)
 Readonly::Array my @subcommand_methods => qw(cmd buildah bud containers from images info inspect
-	mount pull push rename rm rmi tag umount unshare version);
+	mount pull push_image rename rm rmi tag umount unshare version);
+
+# aliases to de-conflict methods that have same name as Perl builtins
+Readonly::Hash my %subcommand_aliases => (push => "push_image", rename => "rename_image");
 
 #
 # initialize environment
@@ -114,6 +117,12 @@ sub _new_instance
 	foreach my $methodname (@subcommand_methods) {
 		no strict 'refs'; ## no critic (ProhibitNoStrict)
 		*{$methodname} = \&{"Container::Buildah::Subcommand::$methodname"};
+	}
+
+	# handle subcommand wrapper aliases to avoid functions with names of Perl builtins
+	foreach my $aliasname (keys %subcommand_aliases) {
+		no strict 'refs'; ## no critic (ProhibitNoStrict)
+		*{$aliasname} = \&{"Container::Buildah::Subcommand::".$subcommand_aliases{$aliasname}};
 	}
 
 	# Template setup
