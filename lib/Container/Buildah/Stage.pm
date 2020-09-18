@@ -247,10 +247,11 @@ sub commit
 
 	# process parameters
 	my ($extract, @args) = process_params({name => 'commit',
-		arg_flag => [qw(disable-compression quiet rm squash)],
+		arg_flag => [qw(disable-compression omit-timestamp quiet rm squash tls-verify)],
 		arg_int => [qw(timestamp)],
-		arg_str => [qw(authfile blob-cache cert-dir creds encryption-key encrypt-layer format iidfile
+		arg_str => [qw(authfile blob-cache cert-dir creds encryption-key format iidfile
 			reference-time sign-by signature-policy tls-verify omit-timestamp)]
+		arg_array => [qw(encrypt-layer)],
 	}, $params);
 
 	# do commit
@@ -277,9 +278,9 @@ sub config
 	my ($extract, @args) = process_params({name => 'config',
 		arg_init => [qw(--add-history)],
 		arg_str => [qw(arch author cmd comment created-by domainname healthcheck healthcheck-interval
-			healthcheck-retries healthcheck-start-period healthcheck-timeout history-comment hostname onbuild
+			healthcheck-retries healthcheck-start-period healthcheck-timeout history-comment hostname
 			os shell stop-signal user workingdir)],
-		arg_array => [qw(annotation env label port volume)],
+		arg_array => [qw(annotation env label onbuild port volume)],
 		arg_list => [qw(entrypoint)]
 	}, $params);
 
@@ -337,9 +338,9 @@ sub run
 	my ($extract, @args) = process_params({name => 'run',
 		arg_init => ['--add-history'],
 		arg_flag => [qw(no-pivot terminal)],
-		arg_str => [qw(cap-add cap-drop cni-config-dir cni-plugin-path hostname ipc isolation network pid runtime
+		arg_str => [qw(cni-config-dir cni-plugin-path hostname ipc isolation network pid runtime
 			user uts)],
-		arg_array => [qw(mount runtime-flag security-opt volume)],
+		arg_array => [qw(cap-add cap-drop mount runtime-flag security-opt volume)],
 	}, $params);
 
 	# loop through provided commands
