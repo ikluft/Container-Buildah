@@ -250,7 +250,7 @@ sub commit
 		arg_flag => [qw(disable-compression omit-timestamp quiet rm squash tls-verify)],
 		arg_int => [qw(timestamp)],
 		arg_str => [qw(authfile blob-cache cert-dir creds encryption-key format iidfile
-			reference-time sign-by signature-policy tls-verify omit-timestamp)]
+			reference-time sign-by signature-policy tls-verify omit-timestamp)],
 		arg_array => [qw(encrypt-layer)],
 	}, $params);
 
@@ -281,7 +281,7 @@ sub config
 			healthcheck-retries healthcheck-start-period healthcheck-timeout history-comment hostname
 			os shell stop-signal user workingdir)],
 		arg_array => [qw(annotation env label onbuild port volume)],
-		arg_list => [qw(entrypoint)]
+		arg_list => [qw(entrypoint)],
 	}, $params);
 
 	# run command
