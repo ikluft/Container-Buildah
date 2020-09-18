@@ -459,12 +459,14 @@ sub bud
 	# process parameters
 	my ($extract, @args) = process_params({name => 'bud',
 		extract => [qw(suppress_output suppress_error nonzero zero)],
-		arg_flag => [qw(compress disable-content-trust no-cache pull pull-always pull-never quiet)],
-		arg_flag_str => [qw(disable-compression force-rm layers rm squash tls-verify)],
-		arg_str => [qw(arch authfile cache-from cert-dir cgroup-parent cni-config-dir cni-plugin-path cpu-period
-			cpu-quota cpu-shares cpuset-cpus cpuset-mems creds decryption-key file format http-proxy iidfile ipc
-			isolation loglevel logfile memory memory-swap network os platform runtime shm-size sign-by tag target
-			userns userns-uid-map userns-gid-map userns-uid-map-user userns-gid-map-group uts)],
+		arg_flag => [qw(compress disable-content-trust http-proxy log-rusage no-cache pull pull-always pull-never
+			quiet rm squash tls-verify)],
+		arg_flag_str => [qw(disable-compression force-rm layers)],
+		arg_str => [qw(arch authfile blob-cache cache-from cert-dir cgroup-parent cni-config-dir cni-plugin-path
+			cpu-period cpu-quota cpu-shares cpuset-cpus cpuset-mems creds decryption-key file format http-proxy
+			iidfile ipc isolation jobs logfile loglevel memory memory-swap network os override-arch override-os
+			platform runtime shm-size sign-by signature-policy tag target timestamp userns userns-uid-map
+			userns-gid-map userns-uid-map-user userns-gid-map-group uts)],
 		arg_array => [qw(add-host annotation build-arg cap-add cap-drop device dns dns-option dns-search
 			label runtime-flag security-opt ulimit volume)],
 		}, $params);
@@ -514,10 +516,12 @@ sub from
 		extract => [qw(suppress_output suppress_error nonzero zero)],
 		arg_flag => [qw(pull-always pull-never tls-verify quiet)],
 		arg_flag_str => [qw(http-proxy pull)],
-		arg_str => [qw(authfile cert-dir cgroup-parent cidfile cni-config-dir cni-plugin-path cpu-period cpu-quota
-			cpu-shares cpuset-cpus cpuset-mems creds device format ipc isolation memory memory-swap name network
-			pid shm-size ulimit userns userns-uid-map userns-gid-map userns-uid-map-user userns-gid-map-group uts)],
-		arg_array => [qw(add-host cap-add cap-drop decryption-key dns dns-option dns-search security-opt volume)],
+		arg_str => [qw(authfile blob-cache cert-dir cgroup-parent cidfile cni-config-dir cni-plugin-path cpu-period
+			cpu-quota cpu-shares cpuset-cpus cpuset-mems creds device format ipc isolation memory memory-swap name
+			network override-arch override-os pid shm-size ulimit userns userns-uid-map userns-gid-map
+			userns-uid-map-user userns-gid-map-group uts)],
+		arg_array => [qw(add-host cap-add cap-drop decryption-key device dns dns-option dns-search security-opt
+			ulimit volume)],
 	}, $params);
 
 	# get image parameter
@@ -690,7 +694,7 @@ sub push_image
 }
 
 # front end to "buildah rename" subcommand
-# named rename_image() to de-conflict with Perl builtin rename, but Container::Buildah links push() as an alias
+# named rename_image() to de-conflict with Perl builtin rename, but Container::Buildah links rename() as an alias
 # usage: $str = $cb->rename_image(image, new-name)
 # or:    $str = $cb->rename(image, new-name)
 # public class method
