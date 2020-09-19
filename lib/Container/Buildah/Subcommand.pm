@@ -427,9 +427,9 @@ sub buildah
 # ✓ images
 # ✓ info
 # ✓ inspect
-# - manifest_add
-# - manifest_annotate
-# - manifest_create
+# ✓ manifest_add
+# ✓ manifest_annotate
+# ✓ manifest_create
 # - manifest_inspect
 # - manifest_push
 # - manifest_remove
@@ -611,6 +611,103 @@ sub inspect
 	my $yaml = $cb->buildah({capture_output => 1, %$extract}, "inspect", @args,  $object_id);
 	my $inspect = YAML::XS::Load($yaml);
 	return $inspect;
+}
+
+# front end to "buildah manifest_add" subcommand
+# usage: $str = $cb->manifest_add([{option => value, ...}], list-or-index, image)
+# public class method
+sub manifest_add
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my $list_or_index = $in_args[0];
+	if (not defined $list_or_index) {
+		croak "list/index parameter missing in call to 'manifest_add' method";
+	}
+	my $image = $in_args[1];
+	if (not defined $image) {
+		croak "object id parameter missing in call to 'manifest_add' method";
+	}
+	my ($extract, @args) = process_params({name => 'manifest_add',
+		extract => [qw(suppress_error nonzero zero)],
+		arg_flag => [qw(all tls-verify)],
+		arg_str => [qw(arch authfile cert-dir creds os os-version override-arch override-os variant)],
+		arg_array => [qw(annotation features os-features)],
+		}, $params);
+
+	# run command and return output
+	my $manifest_add = $cb->buildah({capture_output => 1, %$extract}, "manifest_add", @args, $list_or_index, $image);
+	return $manifest_add;
+}
+
+# front end to "buildah manifest_annotate" subcommand
+# usage: $str = $cb->manifest_annotate([{option => value, ...}], list-or-index, digest)
+# public class method
+sub manifest_annotate
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my $list_or_index = $in_args[0];
+	if (not defined $list_or_index) {
+		croak "list/index parameter missing in call to 'manifest_annotate' method";
+	}
+	my $digest = $in_args[1];
+	if (not defined $digest) {
+		croak "image manifest digest parameter missing in call to 'manifest_annotate' method";
+	}
+	my ($extract, @args) = process_params({name => 'manifest_annotate',
+		extract => [qw(suppress_error nonzero zero)],
+		arg_str => [qw(arch os os-version variant)],
+		arg_array => [qw(annotation features os-features)],
+		}, $params);
+
+	# run command and return output
+	my $manifest_annotate = $cb->buildah({capture_output => 1, %$extract}, "manifest_annotate", @args, $list_or_index,
+		$digest);
+	return $manifest_annotate;
+}
+
+# front end to "buildah manifest_create" subcommand
+# usage: $str = $cb->manifest_create([{option => value, ...}], list-or-index, image)
+# public class method
+sub manifest_create
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my $list_or_index = $in_args[0];
+	if (not defined $list_or_index) {
+		croak "list/index parameter missing in call to 'manifest_create' method";
+	}
+	my $image = $in_args[1];
+	my ($extract, @args) = process_params({name => 'manifest_create',
+		extract => [qw(suppress_error nonzero zero)],
+		arg_flag => [qw(all)],
+		arg_str => [qw(override-arch override-os)],
+		arg_array => [qw()],
+		}, $params);
+
+	# run command and return output
+	my $manifest_create = $cb->buildah({capture_output => 1, %$extract}, "manifest_create", @args, $list_or_index,
+		($image // ()));
+	return $manifest_create;
 }
 
 # front-end to "buildah mount" subcommand
