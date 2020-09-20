@@ -430,9 +430,9 @@ sub buildah
 # ✓ manifest_add
 # ✓ manifest_annotate
 # ✓ manifest_create
-# - manifest_inspect
-# - manifest_push
-# - manifest_remove
+# ✓ manifest_inspect
+# ✓ manifest_push
+# ✓ manifest_remove
 # ✓ mount
 # ✓ pull
 # ✓ push
@@ -708,6 +708,94 @@ sub manifest_create
 	my $manifest_create = $cb->buildah({capture_output => 1, %$extract}, "manifest_create", @args, $list_or_index,
 		($image // ()));
 	return $manifest_create;
+}
+
+# front end to "buildah manifest_inspect" subcommand
+# usage: $str = $cb->manifest_inspect([{option => value, ...}], list-or-index)
+# public class method
+sub manifest_inspect
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my $list_or_index = $in_args[0];
+	if (not defined $list_or_index) {
+		croak "list/index parameter missing in call to 'manifest_inspect' method";
+	}
+	my ($extract, @args) = process_params({name => 'manifest_inspect',
+		extract => [qw(suppress_error nonzero zero)],
+		}, $params);
+
+	# run command and return output
+	my $manifest_inspect = $cb->buildah({capture_output => 1, %$extract}, "manifest_inspect", $list_or_index);
+	return $manifest_inspect;
+}
+
+# front end to "buildah manifest_push" subcommand
+# usage: $str = $cb->manifest_push([{option => value, ...}], list-or-index, registry)
+# public class method
+sub manifest_push
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my $list_or_index = $in_args[0];
+	if (not defined $list_or_index) {
+		croak "list/index parameter missing in call to 'manifest_push' method";
+	}
+	my $registry = $in_args[1];
+	my ($extract, @args) = process_params({name => 'manifest_push',
+		extract => [qw(suppress_error nonzero zero)],
+		arg_flag => [qw(all purge quiet remove-signatures tls-verify)],
+		arg_str => [qw(authfile cert-dir creds digestfile format sign-by signature-policy)],
+		arg_array => [qw()],
+		}, $params);
+
+	# run command and return output
+	my $manifest_push = $cb->buildah({capture_output => 1, %$extract}, "manifest_push", @args, $list_or_index,
+		$registry);
+	return $manifest_push;
+}
+
+# front end to "buildah manifest_remove" subcommand
+# usage: $str = $cb->manifest_remove([{option => value, ...}], list-or-index, image-manifest-digest)
+# public class method
+sub manifest_remove
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $params = {};
+	if (ref $in_args[0] eq "HASH") {
+		$params = shift @in_args;
+	}
+
+	# process parameters
+	my $list_or_index = $in_args[0];
+	if (not defined $list_or_index) {
+		croak "list/index parameter missing in call to 'manifest_remove' method";
+	}
+	my $image_manifest_digest = $in_args[0];
+	if (not defined $image_manifest_digest) {
+		croak "image manifest digest parameter missing in call to 'manifest_remove' method";
+	}
+	my ($extract, @args) = process_params({name => 'manifest_remove',
+		extract => [qw(suppress_error nonzero zero)],
+		}, $params);
+
+	# run command and return output
+	my $manifest_remove = $cb->buildah({capture_output => 1, %$extract}, "manifest_remove", $list_or_index,
+		$image_manifest_digest);
+	return $manifest_remove;
 }
 
 # front-end to "buildah mount" subcommand
