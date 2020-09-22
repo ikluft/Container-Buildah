@@ -420,30 +420,6 @@ sub buildah
 # for subcommands which do not have a container name parameter (those are in Container::Buildah::Stage)
 #
 
-# TODO list for wrapper functions
-# ✓ bud
-# ✓ containers
-# ✓ from
-# ✓ images
-# ✓ info
-# ✓ inspect
-# ✓ manifest_add
-# ✓ manifest_annotate
-# ✓ manifest_create
-# ✓ manifest_inspect
-# ✓ manifest_push
-# ✓ manifest_remove
-# ✓ mount
-# ✓ pull
-# ✓ push
-# ✓ rename
-# ✓ rm
-# ✓ rmi
-# ✓ tag
-# ✓ umount
-# ✓ unshare
-# ✓ version
-
 # front end to "buildah bud" (build under dockerfile) subcommand
 # usage: $cb->bud({name => value, ...}, context)
 # public class method
