@@ -13,6 +13,7 @@ use autodie;
 use Carp qw(croak confess);
 use IPC::Run;
 use Data::Dumper;
+use YAML::XS;
 require Container::Buildah;
 
 # exports
