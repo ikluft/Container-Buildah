@@ -74,10 +74,8 @@ sub _new_instance
 		$self->{config}{_config_files} = [];
 	}
 	if (exists $params{yaml_config}) {
-		say STDERR "params: ".Dumper(\%params);
 		my $in_config = YAML::XS::LoadFile($params{yaml_config});
 		push @{$self->{config}{_config_files}}, $params{yaml_config}; # save a record of config files used
-		say STDERR "YAML: ".Dumper($in_config);
 		if (ref $in_config eq "HASH") {
 			$self->{config} = $in_config;
 		} elsif (ref $in_config eq "ARRAY" and ref $in_config->[0] eq "HASH") {
@@ -596,7 +594,7 @@ sub main
 		}
 
 		# if we get here, we're done
-		say Container::Buildah->get_config("basename")." complete";
+		$cb->status(Container::Buildah->get_config("basename")." complete");
 	}
 	return 0;
 }
