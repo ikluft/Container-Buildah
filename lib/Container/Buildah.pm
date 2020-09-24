@@ -16,7 +16,6 @@ use Readonly;
 use Getopt::Long;
 use Data::Dumper;
 use IO::Handle;
-use IPC::Run;
 use File::Slurp;
 use File::Sync qw(sync);
 use Algorithm::Dependency;
@@ -164,9 +163,11 @@ sub status
 		: Container::Buildah->instance();
 
 	# print status message
-	say STDOUT "=== status: ".join(" ", @in_args);
-	if ((exists $cb->{oldstdout}) and ($cb->{oldstdout}->fileno != fileno(STDERR))) {
-		$cb->{oldstdout}->print("=== status: ".join(" ", @in_args)."\n");
+	if ($debug > 0) {
+		say STDOUT "=== status: ".join(" ", @in_args);
+		if ((exists $cb->{oldstdout}) and ($cb->{oldstdout}->fileno != fileno(STDERR))) {
+			$cb->{oldstdout}->print("=== status: ".join(" ", @in_args)."\n");
+		}
 	}
 	return;
 }
@@ -189,8 +190,9 @@ sub debug
 
 	# print debugging statement if enabled
 	my $level = $params{level} // 1;
-	my $wrapper = $params{wrapper} // 0; # skip stack frame if called from debug wrapper function
 	if ($debug >= $level) {
+		my $wrapper = $params{wrapper} // 0; # skip stack frame if called from debug wrapper function
+
 		# debug label: get caller name (default to function name from Perl call stack) and any label string
 		my @label;
 		if (exists $params{name} and defined $params{name}) {
@@ -203,7 +205,7 @@ sub debug
 				push @label, $caller;
 			}
 		}
-		if (exists $params{label}) {
+		if (exists $params{label} and defined $params{label}) {
 			push @label, $params{label};
 		}
 
@@ -453,7 +455,7 @@ sub stage
 	my ($cb, $name, %opt) = @_;
 
 	# get flag: are we internal to the user namespace for container setup
-	my $is_internal = (exists $opt{internal}) ? $opt{internal} : 0;
+	my $is_internal = $opt{internal} // 0;
 
 	# instantiate the Container::Buildah::Stage object for this stage's container
 	require Container::Buildah::Stage;
