@@ -1,30 +1,38 @@
 Change log for Container::Buildah
 
 {{$NEXT}}
-[API CHANGE]
+ [API CHANGE]
 
-[BUG FIXES]
+ [BUG FIXES]
 
-[DOCS]
-	- add POD docs
+ [DOCS]
 
-[ENHANCEMENTS]
-	- update cmd() method to capture command output
-	- add common process_param() method for buildah subcommand wrapper functions
+ [ENHANCEMENTS]
 
-[MAJOR]
+ [MAJOR]
 
-[MINOR]
-	- code cleanup for Perl::Critic compliance at severity 3 (harsh) level
-	- split off Container::Buildah::Stage and Container::Buildah::Subcommand classes to their own files
-	- implement wrapper functions for all buildah subcommands
-	- tests: low-level infrastructure functions/methods - config, prog, process_params
-	- tests: mid-level infrastructure functions/methods - cmd, buildah
-	- tests: minimal multi-stage container build
+ [MINOR]
 
-[REVISION]
+ [REVISION]
 
-[SECURITY]
+ [SECURITY]
 
-0.1.0 - 2020-07-17
-	- preparation for posting to GitHub and CPAN
+0.2.0 2020-09-24T15:27:13-07:00 America/Los_Angeles
+ - [API CHANGE]
+ - [BUG FIXES]
+ - [DOCS] - add POD docs
+ - [ENHANCEMENTS] - update cmd() method to capture command output - add
+   common process_param() method for buildah subcommand wrapper functions
+ - [MAJOR]
+ - [MINOR] - code cleanup for Perl::Critic compliance at severity 3 (harsh)
+   level - split off Container::Buildah::Stage and
+   Container::Buildah::Subcommand classes to their own files - implement
+   wrapper functions for all buildah subcommands - tests: low-level
+   infrastructure functions/methods - config, prog, process_params - tests:
+   mid-level infrastructure functions/methods - cmd, buildah - tests:
+   minimal multi-stage container build
+ - [REVISION]
+ - [SECURITY]
+
+0.1.0 2020-07-17
+ - preparation for posting to GitHub and CPAN
