@@ -3,7 +3,6 @@
 use strict;
 use warnings;
 use autodie;
-
 use Carp qw(croak);
 use Container::Buildah;
 use File::Basename;
@@ -91,9 +90,9 @@ eval {
 if ($@) {
 	say STDERR "exception: $@";
 }
-my $config = Container::Buildah->get_config();
 
 # save configuration in YAML for test script
+my $config = Container::Buildah->get_config();
 if (not Container::Buildah->get_config("opts", "internal")) {
 	my $yaml_save = Container::Buildah->get_config("opts", "save");
 	YAML::XS::DumpFile($yaml_save, $config);

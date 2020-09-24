@@ -12,6 +12,7 @@ use Cwd;
 use Readonly;
 use IPC::Run;
 use YAML::XS;
+use File::Path qw(remove_tree);
 
 # detect debug level from environment
 # run as "DEBUG=4 perl -Ilib t/011_prog.t" to get debug output to STDERR
@@ -21,7 +22,8 @@ my $debug_level = (exists $ENV{DEBUG}) ? int $ENV{DEBUG} : 0;
 Readonly::Scalar my $input_dir => getcwd()."/t/test-inputs/".basename($0, ".t");
 Readonly::Scalar my $yaml_config => "hello.yaml";
 Readonly::Scalar my $build_script => "hello_build.pl";
-Readonly::Scalar my $log_dir => getcwd()."/"."log-hello/current";
+Readonly::Scalar my $log_top => getcwd()."/"."log-hello";
+Readonly::Scalar my $log_dir => "$log_top/current";
 Readonly::Scalar my $yaml_save => "$log_dir/saved-config.yaml";
 
 #
@@ -148,5 +150,9 @@ SKIP: {
 	is($tar_list[1], 'opt/hello-bin/hello', 'tarball: hello binary');
 	is($tar_errstr, '', 'tarball: no errors');
 }
+
+# clean up test artifacts
+unlink $tarball;
+remove_tree($log_top, {safe => 1});
 
 1;
