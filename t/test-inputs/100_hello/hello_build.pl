@@ -1,23 +1,23 @@
 #!/usr/bin/perl
-# hello_build.pl - test Container::Buildah building and running a binary in a container
-use strict;
-use warnings;
+# ABSTRACT: hello_build.pl - test Container::Buildah building and running a binary in a container
+# by Ian Kluft
+
+## no critic (Modules::RequireExplicitPackage)
+# 'use strict' and 'use warnings' included here
+use Modern::Perl qw(2018); # require 5.26 security update
+## use critic (Modules::RequireExplicitPackage)
+
 use autodie;
 use Carp qw(croak);
 use Container::Buildah;
-use File::Basename;
 use Readonly;
 use YAML::XS;
 
-# directory for build stage to make its binaries, not saved for other stages
-Readonly::Scalar my $build_dir => "/opt/hello-build";
-
-# directory for build stage to save its product files, saved for runtime stage
-Readonly::Scalar my $bin_dir => "/opt/hello-bin";
-
-# input directory and YAML config file
-Readonly::Scalar my $hello_src => "hello.c";
-Readonly::Scalar my $hello_bin => "hello";
+# set paths as constants
+Readonly::Scalar my $build_dir => "/opt/hello-build"; # directory for build stage to make its binaries
+Readonly::Scalar my $bin_dir => "/opt/hello-bin"; # directory for build stage to save its product files
+Readonly::Scalar my $hello_src => "hello.c"; # input directory
+Readonly::Scalar my $hello_bin => "hello"; # YAML config file
 
 # container parameters
 Container::Buildah::init_config(
