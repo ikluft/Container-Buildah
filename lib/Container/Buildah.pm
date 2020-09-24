@@ -1,5 +1,5 @@
 # Container::Buildah
-# ABSTRACT: Use 'buildah' to enter namespace of OCI/Docker-compatible container image while building it
+# ABSTRACT: wrapper around containers/buildah tool for multi-stage builds of OCI/Docker-compatible Linux containers
 # by Ian Kluft
 
 ## no critic (Modules::RequireExplicitPackage)
