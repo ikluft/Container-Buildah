@@ -161,7 +161,7 @@ sub stage_runtime
 		[qw(rndc-confgen -a)],
 
 		# clean up
-		[qw(/sbin/apk del shadow)],
+		[qw(/sbin/apk del shadow wget)],
 		[qw(/bin/sh -c), "rm -rf /var/cache/apk/*"],
 	);
 

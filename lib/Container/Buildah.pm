@@ -34,7 +34,7 @@ Container::Buildah::Subcommand->import(qw(process_params prog));
 Readonly::Array my @subcommand_methods => qw(cmd buildah bud containers from images info inspect
 	mount pull push_image rename rm rmi tag umount unshare version);
 
-# aliases to de-conflict methods that have same name as Perl builtins
+# aliases to de-conflict wrapper methods that have same name as Perl builtins
 Readonly::Hash my %subcommand_aliases => (push => "push_image", rename => "rename_image");
 
 #
@@ -222,6 +222,7 @@ sub debug
 sub expand
 {
 	my $value = shift;
+	my $cb = Container::Buildah->instance();
 
 	# process array values sequentially
 	if (ref $value eq "ARRAY") {
@@ -229,12 +230,12 @@ sub expand
 		foreach my $subvalue (@$value) {
 			push @result, expand($subvalue);
 		}
+		$cb->debug({level => 4}, "expand: $value -> [".join(" ", @result)."]");
 		return \@result;
 	}
 
 	# process scalar value
 	my $output;
-	my $cb = Container::Buildah->instance();
 	$cb->{template}->process(\$value, $cb->{config}, \$output);
 	$cb->debug({level => 4}, "expand: $value -> $output");
 
@@ -254,17 +255,18 @@ sub expand
 sub get_config
 {
 	my ($class_or_obj, @path) = @_;
-	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 
 	# special case for empty path: return config tree root
 	if (not @path) {
-		return $self->{config};
+		$cb->debug({level => 3}, "get_config: retrieved root node");
+		return $cb->{config};
 	}
 
 	# navigate down config tree
 	my $key = pop @path; # last entry of path is target node
 	my $orig_path = join("/", @path)."->".$key; # for error reporting
-	my $node = $self->{config};
+	my $node = $cb->{config};
 	while (@path) {
 		my $subnode = shift @path;
 		if (exists $node->{$subnode} and ref $node->{$subnode} eq "HASH") {
@@ -277,12 +279,20 @@ sub get_config
 	# return configuration
 	if (exists $node->{$key}) {
 		if (ref $node->{$key} and ref $node->{$key} ne "ARRAY") {
+			$cb->debug({level => 3}, "get_config: $key -> $node->{$key}");
 			return $node->{$key};
 		}
 
-		# if the value is scalar, perform variable expansion
-		return expand($node->{$key});
+		# if the value is scalar or array, perform variable expansion
+		my $result = expand($node->{$key});
+		if (ref $node->{$key} eq "ARRAY") {
+			$cb->debug({level => 3}, "get_config: $key -> [".join(" ", @{$node->{$key}})."]");
+		} else {
+			$cb->debug({level => 3}, "get_config: $key -> $result");
+		}
+		return $result;
 	}
+	$cb->debug({level => 3}, "get_config: not found ($orig_path)");
 	return;
 }
 
@@ -291,12 +301,12 @@ sub get_config
 sub required_config
 {
 	my ($class_or_obj, @in_args) = @_;
-	my $self = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
 
 	# check for missing config parameters required by program
 	my @missing;
 	foreach my $key (@in_args) {
-		if (not exists $self->{config}{$key}) {
+		if (not exists $cb->{config}{$key}) {
 			push @missing, $key;
 		}
 	}
@@ -382,8 +392,7 @@ sub exception_handler
 
 		# report status if possible and exit
 		my $basename = $cb->{config}{basename} // "unnamed container";
-		say STDERR $basename." failed";
-		exit 1;
+		croak $basename." failed";
 	}
 }
 
@@ -433,7 +442,7 @@ sub build_order_deps
 	for (my $i=0; $i < scalar @$order; $i++) {
 		$cb->{order}{$order->[$i]} = $i;
 	}
-	$cb->debug({level => 1}, "build order (data): ".join(" ", grep {$_."=>".$cb->{order}{$_}} keys %{$cb->{order}}));
+	$cb->debug({level => 1}, "build order (data): ".join(" ", map {$_."=>".$cb->{order}{$_}} keys %{$cb->{order}}));
 	return;
 }
 
@@ -441,7 +450,7 @@ sub build_order_deps
 # private class method
 sub stage
 {
-	my ($self, $name, %opt) = @_;
+	my ($cb, $name, %opt) = @_;
 
 	# get flag: are we internal to the user namespace for container setup
 	my $is_internal = (exists $opt{internal}) ? $opt{internal} : 0;
@@ -516,8 +525,8 @@ sub stage
 
 	# close output pipe
 	close $stagelog;
-	open(STDOUT, '>&', $self->{oldstdout});
-	open(STDERR, '>&', $self->{oldstderr});
+	open(STDOUT, '>&', $cb->{oldstdout});
+	open(STDERR, '>&', $cb->{oldstderr});
 	return;
 }
 
@@ -555,29 +564,29 @@ sub main
 		}
 		@do_yaml = (yaml_config => $yaml_config);
 	}
-	my $self = Container::Buildah->instance(@do_yaml);
+	my $cb = Container::Buildah->instance(@do_yaml);
 
 	# process config
-	$self->{config}{opts} = \%cmd_opts;
-	$self->{config}{arch} = $self->get_arch();
+	$cb->{config}{opts} = \%cmd_opts;
+	$cb->{config}{arch} = $cb->get_arch();
 	if (exists $init_config{required_config}
 		and ref $init_config{required_config} eq "ARRAY")
 	{
-		$self->required_config(@{$init_config{required_config}});
+		$cb->required_config(@{$init_config{required_config}});
 	}
 
 	if (exists $cmd_opts{internal}) {
 		# run an internal stage inside a container user namespace if --internal=stage was specified
-		$self->stage($cmd_opts{internal}, internal => 1);
+		$cb->stage($cmd_opts{internal}, internal => 1);
 	} else {
 		# compute container build order from dependencies
-		$self->build_order_deps;
+		$cb->build_order_deps;
 
 		# external (outside the user namespaces) loop to run each stage
-		foreach my $stage (sort {$self->{order}{$a} <=> $self->{order}{$b}}
-			keys %{$self->{config}{stages}})
+		foreach my $stage (sort {$cb->{order}{$a} <=> $cb->{order}{$b}}
+			keys %{$cb->{config}{stages}})
 		{
-			$self->stage($stage);
+			$cb->stage($stage);
 		}
 
 		# if we get here, we're done
