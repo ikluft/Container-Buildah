@@ -538,6 +538,9 @@ sub stage
 # public class function
 sub main
 {
+	# save a copy of the command line for re-launching the script in a container namespace
+	my @argv_copy = @ARGV;
+
 	# process command line
 	my %cmd_opts;
 	my @added_opts = (exists $init_config{added_opts} and ref $init_config{added_opts} eq "ARRAY")
@@ -567,6 +570,7 @@ sub main
 	my $cb = Container::Buildah->instance(@do_yaml);
 
 	# process config
+	$cb->{config}{argv} = \@argv_copy;
 	$cb->{config}{opts} = \%cmd_opts;
 	$cb->{config}{arch} = $cb->get_arch();
 	if (exists $init_config{required_config}

@@ -169,7 +169,8 @@ sub generate_read_accessors
 				or confess "$method_name method (from generate_read_accessors) expects ".__PACKAGE__." object, got "
 					.((defined $self)?((ref $self)?ref $self:"scalar"):"(undef)");
 			my $value = $self->stage_config($field_name);
-			$self->debug({level => 3, label => $method_name}, (defined $value)?"value=$value":"(undef)");
+			$self->debug({level => 3, name => __PACKAGE__."::".$method_name},
+				(defined $value)?"value=$value":"(undef)");
 			return $value;
 		};
 
@@ -499,10 +500,19 @@ sub launch_namespace
 	my $cb = Container::Buildah->instance();
 	$cb->from({name => $self->container_name}, $self->get_from);
 
+	# get copy of @ARGV saved by main() for use here re-launching in namespace
+	my $argv_ref = Container::Buildah->get_config("argv");
+	if (ref $argv_ref ne "ARRAY") {
+		confess "wrong type for argv - expected ARRAY ref, got ".(ref $argv_ref);
+	}
+
 	# run the builder script in the container
-	$cb->unshare({container => $self->container_name, envname => $mnt_env_name},
-		progpath(), "--internal=".$self->get_name,
-		((Container::Buildah::get_debug() > 0) ? "--debug=".Container::Buildah::get_debug() : ()));
+	$cb->unshare({container => $self->container_name,
+		envname => $mnt_env_name},
+		progpath(),
+		"--internal=".$self->get_name,
+		@$argv_ref,
+		);
 
 	# commit the container if configured
 	my $commit = $self->get_commit;
@@ -544,6 +554,7 @@ sub consume
 				($group_name, $gid) = split /=/x, $group_name;
 			}
 		}
+		# TODO: find distro-independent approach instead of assuming Linux Fileystem Standard /usr/sbin paths
 		if (defined $group_name) {
 			$self->run(["/usr/sbin/groupadd", ((defined $gid) ? ("--gid=$gid") : ()), $group_name]);
 		}
