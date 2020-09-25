@@ -189,9 +189,15 @@ my @tests = (
 
 # count tests
 # this optional test set requires buildah to be installed on the build/test system - skip if it's missing
-my $buildah_path = Container::Buildah::prog("buildah");
+my $buildah_found = 0;
+for my $path (qw(/usr/bin /sbin /usr/sbin /bin)) {
+	if (-x "$path/buildah") {
+		$buildah_found = 1;
+		last;
+	}
+}
 my $test_total;
-if (not defined $buildah_path) {
+if (not $buildah_found) {
 	plan skip_all => 'buildah command not available';
 } else {
 	$test_total = count_tests(@tests);

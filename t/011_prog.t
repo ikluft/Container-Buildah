@@ -161,7 +161,6 @@ my @prog_tests = (
 	{ progname => "echo" },
 	{ progname => "sh" },
 	{ progname => "kill" },
-	{ progname => "buildah" },
 	{ progname => "tar" },
 	{
 		progname => "xyzzy-notfound",
