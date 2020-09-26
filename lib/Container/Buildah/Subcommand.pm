@@ -11,6 +11,7 @@ package Container::Buildah::Subcommand;
 
 use autodie;
 use Carp qw(croak confess);
+use POSIX qw(uname);
 use IPC::Run;
 use Data::Dumper;
 use YAML::XS;
@@ -397,12 +398,54 @@ sub cmd
 	return $outstr;
 }
 
+# check that the OS kernel is capable of running containers
+# returns true/false, caches result in config data
+# used by buildah() method and unit tests
+# public class method
+sub container_compat_check
+{
+	my ($class_or_obj, @in_args) = @_;
+	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+
+	# check if kernel has already been tested
+	my $config_key = "container_compat";
+	my $test_result = $cb->get_config($config_key);
+	if (defined $test_result) {
+		$cb->debug({level => 4}, "container_compat_check: cached result $test_result");
+		return $test_result;
+	}
+
+	# call POSIX::uname() to get kernel name and release
+	$test_result = 0; # reset value and assume false
+	my ($sysname, $nodename, $release, $version, $machine) = POSIX::uname();
+	my ($kmajor, $kminor) = ($release =~ /^([0-9]+)\.([0-9]+)\./x);
+
+	# currently only Linux 2.8 kernels and above support containers
+	# adjust as necessary if others (i.e. BSD variants) add container compatibility in the future
+	if ($sysname eq "Linux") {
+		if ($kmajor >= 3) {
+			$test_result = 1;
+		} elsif ($kmajor == 2 and $kminor >= 8) {
+			$test_result = 1;
+		}
+	}
+
+	# cache the result in the config data and return it
+	my $config = $cb->get_config();
+	$config->{$config_key} = $test_result;
+	$cb->debug({level => 4}, "container_compat_check: test result $test_result");
+	return $test_result
+}
+
 # run buildah command with parameters
 # public class method
 sub buildah
 {
 	my ($class_or_obj, @in_args) = @_;
 	my $cb = (ref $class_or_obj) ? $class_or_obj : $class_or_obj->instance();
+
+	# verify kernel compatibility
+	$cb->container_compat_check() or croak "buildah(): kernel is not container-compatible";
 
 	# collect options to pass along to cmd() method
 	my $opts = {};

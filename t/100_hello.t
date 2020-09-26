@@ -6,6 +6,7 @@ use autodie;
 
 use Test::More;
 use Test::RequiresInternet ('docker.io' => 443);
+use POSIX qw(uname);
 use Carp qw(croak);
 use File::Basename;
 use Cwd;
@@ -30,23 +31,43 @@ Readonly::Scalar my $yaml_save => "$log_dir/saved-config.yaml";
 # main
 #
 
-# check for buildah and podman
-my (%paths, @missing);
-for my $target (qw(buildah podman tar)) {
-	for my $path (qw(/usr/bin /sbin /usr/sbin /bin)) {
-		if (-x "$path/$target") {
-			$paths{$target} = "$path/$target";
-			last;
+# check if kernel is container-compatible
+# currently only Linux 2.8 kernels and above support containers
+# adjust as necessary if others (i.e. BSD variants) add container compatibility in the future
+my $kernel_compat = 0; # assume false
+{
+	my ($sysname, $nodename, $release, $version, $machine) = POSIX::uname();
+	my ($kmajor, $kminor) = ($release =~ /^([0-9]+)\.([0-9]+)\./x);
+	if ($sysname eq "Linux") {
+		if ($kmajor >= 3) {
+			$kernel_compat = 1;
+		} elsif ($kmajor == 2 and $kminor >= 8) {
+			$kernel_compat = 1;
 		}
 	}
-	if (!exists $paths{$target}) {
-		push @missing, $target;
-	}
 }
-if (@missing) {
-	plan skip_all => "missing required program: ".join(" ", @missing);
+
+# check for buildah and podman
+if ($kernel_compat) {
+	my (%paths, @missing);
+	for my $target (qw(buildah podman tar)) {
+		for my $path (qw(/usr/bin /sbin /usr/sbin /bin)) {
+			if (-x "$path/$target") {
+				$paths{$target} = "$path/$target";
+				last;
+			}
+		}
+		if (!exists $paths{$target}) {
+			push @missing, $target;
+		}
+	}
+	if (@missing) {
+		plan skip_all => "missing required program: ".join(" ", @missing);
+	} else {
+		plan tests => 18;
+	}
 } else {
-	plan tests => 18;
+	plan skip_all => 'kernel is not container-compatible';
 }
 
 # check for test configuration
