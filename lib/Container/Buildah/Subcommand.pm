@@ -1098,44 +1098,56 @@ __END__
   
 =head1 DESCRIPTION
 
-=method buildah
+Container::Buildah::Subcommand provides the following methods, which should be called methods of Container::Buildah.
 
-=method bud
+=over 1
 
-=method containers
+=item prog
 
-=method from
+=item cmd
 
-=method images
+=item buildah
 
-=method info
+=item bud
 
-=method inspect
+=item containers
 
-=method mount
+=item from
 
-=method pull
+=item images
 
-=method push
+=item info
 
-=method rename
+=item inspect
 
-=method rm
+=item mount
 
-=method rmi
+=item pull
 
-=method tag
+=item push
 
-=method umount
+=item rename
 
-=method unshare
+=item rm
 
-=method version
+=item rmi
+
+=item tag
+
+=item umount
+
+=item unshare
+
+=item version
+
+=back
 
 =head1 BUGS AND LIMITATIONS
 
 Please report bugs via GitHub at L<https://github.com/ikluft/Container-Buildah/issues>
 
 Patches and enhancements may be submitted via a pull request at L<https://github.com/ikluft/Container-Buildah/pulls>
+
+Containers can only be run with a Linux kernel revision 2.8 or newer.
 
 =cut

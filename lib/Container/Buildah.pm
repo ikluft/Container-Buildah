@@ -152,7 +152,7 @@ sub init_config
 }
 
 # print status messages
-# public class function
+# public class method
 sub status
 {
 	# get Container::Buildah ref from method-call parameter or class singleton instance
@@ -171,7 +171,7 @@ sub status
 }
 
 # print debug messages
-# public class function
+# public class method
 sub debug
 {
 	my ($cb, @in_args) = @_;
@@ -669,11 +669,15 @@ The B<Container::Buildah> module has one singleton instance per program.
 It contains configuration data for a container build process.
 The data is similar to what would be in a Dockerfile, except this module makes it scriptable.
 
+=head1 FUNCTIONS AND METHODS
+
+=head2 Container::Buildah core functions and methods
+
 =func init_config
 
-=func status
+=method status
 
-prints a list of strings to STDOUT
+prints a list of strings to STDERR, if debugging is set to level 1 or higher.
 
 =method debug
 
@@ -698,18 +702,55 @@ Return integer value of debug level
 
 Take an integer value parameter to set the debug level. A level of 0 means debugging is turned off. The default is 0.
 
+=method main
+
+=head2 methods provided by Container::Buildah::Subcommand
+
 =method prog
+
+=method cmd
 
 =method buildah
 
+=method bud
+
+=method containers
+
+=method from
+
+=method images
+
+=method info
+
+=method inspect
+
+=method mount
+
+=method pull
+
+=method push
+
+=method rename
+
+=method rm
+
+=method rmi
+
 =method tag
 
-=method main
+=method umount
+
+=method unshare
+
+=method version
+
 
 =head1 BUGS AND LIMITATIONS
 
 Please report bugs via GitHub at L<https://github.com/ikluft/Container-Buildah/issues>
 
 Patches and enhancements may be submitted via a pull request at L<https://github.com/ikluft/Container-Buildah/pulls>
+
+Containers can only be run with a Linux kernel revision 2.8 or newer.
 
 =cut

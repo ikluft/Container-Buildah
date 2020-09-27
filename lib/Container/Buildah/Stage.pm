@@ -711,4 +711,6 @@ Please report bugs via GitHub at L<https://github.com/ikluft/Container-Buildah/i
 
 Patches and enhancements may be submitted via a pull request at L<https://github.com/ikluft/Container-Buildah/pulls>
 
+Containers can only be run with a Linux kernel revision 2.8 or newer.
+
 =cut
