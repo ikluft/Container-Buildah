@@ -219,10 +219,15 @@ sub add
 	# process parameters
 	my ($extract, @args) = process_params({name => 'add',
 		extract => [qw(dest)],
-		arg_init => [qw(--add-history)],
-		arg_flag => [qw(quiet)],
+		arg_flag => [qw(add-history quiet)],
 		arg_str => [qw(chown)]
 	}, $params);
+
+	# insert --add-history if corresponding global option set
+	# (buildah also does this by $ENV{BUILDAH_HISTORY}='true')
+	if (Container::Buildah->get_config(qw(opts add-history)) // 0) {
+		unshift @args, "--add-history";
+	}
 
 	# get special parameter dest if it exists
 	my $dest = $extract->{dest};
@@ -277,13 +282,19 @@ sub config
 
 	# process parameters
 	my ($extract, @args) = process_params({name => 'config',
-		arg_init => [qw(--add-history)],
+		arg_flag => [qw(add-history)],
 		arg_str => [qw(arch author cmd comment created-by domainname healthcheck healthcheck-interval
 			healthcheck-retries healthcheck-start-period healthcheck-timeout history-comment hostname
 			os shell stop-signal user workingdir)],
 		arg_array => [qw(annotation env label onbuild port volume)],
 		arg_list => [qw(entrypoint)],
 	}, $params);
+
+	# insert --add-history if corresponding global option set
+	# (buildah also does this by $ENV{BUILDAH_HISTORY}='true')
+	if (Container::Buildah->get_config(qw(opts add-history)) // 0) {
+		unshift @args, "--add-history";
+	}
 
 	# run command
 	my $cb = Container::Buildah->instance();
@@ -306,10 +317,15 @@ sub copy
 	# process parameters
 	my ($extract, @args) = process_params({name => 'copy',
 		extract => [qw(dest)],
-		arg_init => [qw(--add-history)],
-		arg_flag => [qw(quiet)],
+		arg_flag => [qw(add-history quiet)],
 		arg_str => [qw(chown)]
 	}, $params);
+
+	# insert --add-history if corresponding global option set
+	# (buildah also does this by $ENV{BUILDAH_HISTORY}='true')
+	if (Container::Buildah->get_config(qw(opts add-history)) // 0) {
+		unshift @args, "--add-history";
+	}
 
 	# get special parameter dest if it exists
 	my $dest = $extract->{dest};
@@ -337,12 +353,17 @@ sub run
 
 	# process parameters
 	my ($extract, @args) = process_params({name => 'run',
-		arg_init => ['--add-history'],
-		arg_flag => [qw(no-pivot terminal)],
+		arg_flag => [qw(add-history no-pivot terminal)],
 		arg_str => [qw(cni-config-dir cni-plugin-path hostname ipc isolation network pid runtime
 			user uts)],
 		arg_array => [qw(cap-add cap-drop mount runtime-flag security-opt volume)],
 	}, $params);
+
+	# insert --add-history if corresponding global option set
+	# (buildah also does this by $ENV{BUILDAH_HISTORY}='true')
+	if (Container::Buildah->get_config(qw(opts add-history)) // 0) {
+		unshift @args, "--add-history";
+	}
 
 	# loop through provided commands
 	# build outer array if only one command was provided

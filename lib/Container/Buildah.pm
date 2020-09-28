@@ -545,7 +545,7 @@ sub main
 	my %cmd_opts;
 	my @added_opts = (exists $init_config{added_opts} and ref $init_config{added_opts} eq "ARRAY")
 		? @{$init_config{added_opts}} : ();
-	GetOptions(\%cmd_opts, "debug:i", "config:s", "internal:s", @added_opts);
+	GetOptions(\%cmd_opts, "debug:i", "add-history", "config:s", "internal:s", @added_opts);
 	if (exists $cmd_opts{debug}) {
 		set_debug($cmd_opts{debug});
 	}
