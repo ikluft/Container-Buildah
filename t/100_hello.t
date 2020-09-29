@@ -64,7 +64,7 @@ if ($kernel_compat) {
 	if (@missing) {
 		plan skip_all => "missing required program: ".join(" ", @missing);
 	} else {
-		plan tests => 18;
+		plan tests => 25;
 	}
 } else {
 	plan skip_all => 'kernel is not container-compatible';
@@ -86,7 +86,7 @@ if (-e $tarball) {
 
 # run Container::Buildah script
 my @sent_args = ("--config=$input_dir/$yaml_config", "--inputs=$input_dir",
-	"--save=$yaml_save", ($debug_level > 0 ? "--debug=$debug_level" : ()));
+	"--save=$yaml_save", "--add-history", ($debug_level > 0 ? "--debug=$debug_level" : ()));
 my @cmd = ( "$input_dir/$build_script", @sent_args);
 if ($debug_level > 0) {
 	say STDERR "input_dir: $input_dir";
@@ -124,6 +124,16 @@ my $image_exists = 0;
 	isnt($?, -1, "image: podman inspect executed");
 	$image_exists = $retcode == 0;
 	ok($image_exists, "image: expected image exists");
+
+	# check contents of image
+	my $inspect = YAML::XS::Load($inspect_outstr);
+	is_deeply($inspect->[0]{Config}{Entrypoint}, [qw(/bin/sh -c /opt/hello-bin/hello)], "check entrypoint");
+	is_deeply($inspect->[0]{Config}{Cmd}, [qw(/bin/sh)], "check cmd");
+	like($inspect->[0]{History}[0]{created_by}, qr/ADD/, "check history 0");
+	like($inspect->[0]{History}[1]{created_by}, qr/CMD/, "check history 1");
+	like($inspect->[0]{History}[2]{created_by}, qr/ADD/, "check history 2");
+	like($inspect->[0]{History}[3]{created_by}, qr/ENV/, "check history 3");
+	like($inspect->[0]{History}[4]{created_by}, qr/ENTRYPOINT/, "check history 4");
 }
 
 # run the container - verify correct output and empty error
@@ -142,15 +152,19 @@ SKIP: {
 	is($run_outstr, "Hello world! Version: ".$yaml->{timestamp_str}, "container run: output contents");
 	is($run_errstr, '', 'container run: no errors');
 
-	# remove the container to clean up our mess
-	my ($rmi_outstr, $rmi_errstr);
-	@cmd = ("podman", "rmi", "--force", $image_name);
-	IPC::Run::run(\@cmd, '<', \undef, '>', \$rmi_outstr, '2>', \$rmi_errstr);
-	$retcode = $? >> 8;
-	chomp $rmi_outstr;
-	chomp $rmi_errstr;
-	isnt($?, -1, "image cleanup: executed");
-	is($retcode, 0, "image cleanup: succeeded");
+	SKIP: {
+		skip "cleanup disabled from environment", 2 if (exists $ENV{TEST_NO_CLEANUP} and $ENV{TEST_NO_CLEANUP});
+
+		# remove the container to clean up our mess
+		my ($rmi_outstr, $rmi_errstr);
+		@cmd = ("podman", "rmi", "--force", $image_name);
+		IPC::Run::run(\@cmd, '<', \undef, '>', \$rmi_outstr, '2>', \$rmi_errstr);
+		$retcode = $? >> 8;
+		chomp $rmi_outstr;
+		chomp $rmi_errstr;
+		isnt($?, -1, "image cleanup: executed");
+		is($retcode, 0, "image cleanup: succeeded");
+	}
 }
 
 # inspect interstage tarball contents
@@ -173,7 +187,9 @@ SKIP: {
 }
 
 # clean up test artifacts
-unlink $tarball;
-remove_tree($log_top, {safe => 1});
+if (not exists $ENV{TEST_NO_CLEANUP} or not $ENV{TEST_NO_CLEANUP}) {
+	unlink $tarball;
+	remove_tree($log_top, {safe => 1});
+}
 
 1;
