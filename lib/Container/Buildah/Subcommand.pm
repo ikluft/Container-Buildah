@@ -1098,7 +1098,25 @@ __END__
   
 =head1 DESCRIPTION
 
-Container::Buildah::Subcommand provides the following methods, which should be called methods of Container::Buildah.
+Container::Buildah::Subcommand provides the following methods, which should be called as methods of
+L<Container::Buildah>. Since Container::Buildah is a singleton, these methods can be called as
+class or instance methods. For example:
+
+
+=over 1
+
+=item call buildah() as a class method
+
+Container::Buildah->buildah("run", @args, $container_name, "--", @command);
+
+=item call buildah() as an instance method
+
+my $cb = Container::Buildah->instance("run", @args, $container_name, "--", @command);
+$cb->buildah();
+
+=back
+
+=head1 FUNCTIONS AND METHODS
 
 =over 1
 
