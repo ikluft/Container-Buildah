@@ -17,6 +17,11 @@ Change log for Container::Buildah
 
  [SECURITY]
 
+0.3.1 2020-10-01T18:05:43-07:00 America/Los_Angeles
+ [DOCS]
+ - rearrange bind9 example into a subdirectory
+ - add hello world example
+
 0.3.0 2020-10-01T15:23:03-07:00 America/Los_Angeles
  [DOCS]
  - small expansion of POD docs
