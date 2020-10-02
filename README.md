@@ -8,10 +8,6 @@ CPAN: [https://metacpan.org/pod/Container::Buildah](https://metacpan.org/pod/Con
 
 Container::Buildah - wrapper around containers/buildah tool for multi-stage builds of OCI/Docker-compatible Linux containers
 
-# VERSION
-
-version 0.3.0
-
 # SYNOPSIS
 
     use <Container::Buildah>;
