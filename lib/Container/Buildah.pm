@@ -673,7 +673,83 @@ The data is similar to what would be in a Dockerfile, except this module makes i
 
 =head2 Container::Buildah core functions and methods
 
-=func init_config
+=func init_config ( attribute => "value", ... )
+
+A set of attribute/value pairs initializes the configuration of Container::Buildah for the current program.
+This is set apart from the main() function so methods can use the configuration without calling main().
+This is currently only used for unit testing, but prevents restricting other uses.
+
+The following example is from the examples/hello directory in the Container::Buildah source code.
+
+	Container::Buildah::init_config(
+		basename => "hello",
+		base_image => 'docker://docker.io/alpine:[% alpine_version %]',
+		required_config => [qw(alpine_version)],
+		stages => {
+			build => {
+				from => "[% base_image %]",
+				func_exec => \&stage_build,
+				produces => [$bin_dir],
+			},
+			runtime => {
+				from => "[% base_image %]",
+				consumes => [qw(build)],
+				func_exec => \&stage_runtime,
+				commit => ["[% basename %]:latest"],
+			},
+		},
+	);
+
+This is what the attributes in the example mean.
+
+=over
+
+=item basename
+
+	is set to "hello", which is used as a prefix for container names, YAML configuration files and tar archives.
+
+=item base_image
+
+	is used as a macro later in the "from" attribute in each stage of the build.
+	This attribute is not required by Container::Buildah.
+	It was user-defined by using it in a Template Toolkit macro in other attributes.
+
+=item required_config
+
+	tells Container::Buildah which user-defined attributes should be considered required.
+	The build will fail if any of them are not defined.
+
+=item alpine_version
+
+	does not have a value assigned in this configuration.
+	It is defined by being used as a macro in base_image.
+	And it is listed in required_config as a required attribute.
+	In this case, it is expected to be assigned in an external YAML configuration file named hello.yml or hello.yaml
+	based on the basename attribute.
+	It is useful to separate into the YAML configuration any external software version numbers and related data
+	that are expected to change at a higher rate than the rest of the project.
+
+=item stages
+
+=item stages -> build
+
+=item stages -> build -> from
+
+=item stages -> build -> func_exec
+
+=item stages -> build -> produces
+
+=item stages -> runtime
+
+=item stages -> runtime -> from
+
+=item stages -> runtime -> consumes
+
+=item stages -> runtime -> func_exec
+
+=item stages -> runtime -> commit
+
+=back
 
 =method status
 
@@ -682,7 +758,7 @@ prints a list of strings to STDERR, if debugging is set to level 1 or higher.
 =method debug
 
 Prints a list of strings to STDERR, if debugging is at the specified level.
-If the first argument is a HASH reference, it is used for key/value parameters.
+If the first argument is a HASH reference, it is used for attribute/value parameters.
 The recognized parameters are
 =over
 =item "name" for the name of the caller function, defaults to the name from the Perl call stack
