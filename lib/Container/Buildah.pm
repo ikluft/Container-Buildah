@@ -731,23 +731,61 @@ This is what the attributes in the example mean.
 
 =item stages
 
+	This is a list of container build stages.
+	The order doesn't matter because they will be run by order of dependencies.
+	However, it is recommended to list them in dependency order for your own readability.
+
 =item stages -> build
+
+	Each stage name is an arbitrary string named at the user's discretion.
+	In this case, as a typical case, the first stage is called I<build> because it builds files which the I<runtime>
+	stage depends upon.
 
 =item stages -> build -> from
 
+	Within each stage, the I<from> attribute sets the base image which the container is built from,
+	like the same-named line in a Dockerfile and buildah's from subcommand.
+
 =item stages -> build -> func_exec
+
+	Within each stage, the I<func_exec> attribute is a reference to the function which should be called for the stage.
 
 =item stages -> build -> produces
 
+	The optional I<produces> attribute in a stage lists one or more directory paths inside the container which
+	have the files which were built in that stage.
+	The contents of the directory will be saved as a tarball.
+	Any stage with a I<consumes> attribute whose value is the name of this stage will import the tarball contents
+	into their container at the same directory path.
+
 =item stages -> runtime
+
+	Each stage name is an arbitrary string named at the user's discretion.
+	In this case, as a typical case, the second stage is called I<runtime> because it runs the code built in
+	the I<build> stage.
+	This allows the container to avoid the extra size of compilers and other build tools which are not needed
+	at run time.
 
 =item stages -> runtime -> from
 
+	Within each stage, the I<from> attribute sets the base image which the container is built from,
+	like the same-named line in a Dockerfile and buildah's from subcommand.
+
 =item stages -> runtime -> consumes
+
+	The optional I<consumes> attribute names another stage, which must have a I<produces> attribute, and imports
+	into this container the files from the producer stage's tarball.
+	The I<consumes> and I<produces> attributes establish a dependency relationship where the producer stage
+	will be run before the consumer stage.
 
 =item stages -> runtime -> func_exec
 
+	Within each stage, the I<func_exec> attribute is a reference to the function which should be called for the stage.
+
 =item stages -> runtime -> commit
+
+	The optional I<commit> attribute sets a container name and tag for this stage's container image to be stored as.
+	This only makes sense for runtime stages, not build/producer stages.
 
 =back
 
