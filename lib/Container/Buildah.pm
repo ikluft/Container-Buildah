@@ -669,9 +669,87 @@ The B<Container::Buildah> module has one singleton instance per program.
 It contains configuration data for a container build process.
 The data is similar to what would be in a Dockerfile, except this module makes it scriptable.
 
-=head1 FUNCTIONS AND METHODS
+=method status ( "string", ... )
 
-=head2 Container::Buildah core functions and methods
+prints a list of strings to STDERR, if debugging is set to level 1 or higher.
+
+=method debug ( "string", ... )
+
+Prints a list of strings to STDERR, if debugging is at the specified level.
+If the first argument is a HASH reference, it is used for attribute/value parameters.
+The recognized parameters are
+=over
+=item "name" for the name of the caller function, defaults to the name from the Perl call stack
+=item "level" for the minimum debugging level to print the message
+=item "label" for an additional label string to enclose in brackets, such as a container name
+=back
+
+=method get_config ( "path", "to", "name" )
+
+=method required_config ( "varname", ... )
+
+=method get_debug ()
+
+Return integer value of debug level
+
+=method set_debug( [$level] )
+
+Take an integer value parameter to set the debug level. A level of 0 means debugging is turned off. The default is 0.
+
+=method prog ( $cmdname )
+
+Looks up and returns the path of a command within the directories of /usr/bin, /sbin, /usr/sbin and /bin.
+The list of directories is taken from the Linus Filesystem Standard.
+This is intended to be portable among various Linux distributions which may place programs in any of those
+directories.
+It is also to avoid security vulnerabilities from use of the current directory "." or other user-writable
+directories in the path.
+
+Results are cached for use in future calls to prog().
+Returns undef if the command is not found in those directories.
+
+=method cmd
+
+=method buildah
+
+=method bud
+
+=method containers
+
+=method from
+
+=method images
+
+=method info
+
+=method inspect
+
+=method mount
+
+=method pull
+
+=method push
+
+=method rename
+
+=method rm
+
+=method rmi
+
+=method tag
+
+=method umount
+
+=method unshare
+
+=method version
+
+=function main ()
+
+Container::Buildah provides a main() function because it processes the command line arguments.
+It needs to do that because it will re-run itself inside each stage's container namespace with an additional
+parameter to name the stage to run.
+Each stage is run in dependency-order based on the configuration found provided to init_config().
 
 =func init_config ( attribute => "value", ... )
 
@@ -788,75 +866,6 @@ This is what the attributes in the example mean.
 	This only makes sense for runtime stages, not build/producer stages.
 
 =back
-
-=method status
-
-prints a list of strings to STDERR, if debugging is set to level 1 or higher.
-
-=method debug
-
-Prints a list of strings to STDERR, if debugging is at the specified level.
-If the first argument is a HASH reference, it is used for attribute/value parameters.
-The recognized parameters are
-=over
-=item "name" for the name of the caller function, defaults to the name from the Perl call stack
-=item "level" for the minimum debugging level to print the message
-=item "label" for an additional label string to enclose in brackets, such as a container name
-=back
-
-=method get_config
-
-=method required_config
-
-=method get_debug
-
-Return integer value of debug level
-
-=method set_debug
-
-Take an integer value parameter to set the debug level. A level of 0 means debugging is turned off. The default is 0.
-
-=method main
-
-=head2 methods provided by Container::Buildah::Subcommand
-
-=method prog
-
-=method cmd
-
-=method buildah
-
-=method bud
-
-=method containers
-
-=method from
-
-=method images
-
-=method info
-
-=method inspect
-
-=method mount
-
-=method pull
-
-=method push
-
-=method rename
-
-=method rm
-
-=method rmi
-
-=method tag
-
-=method umount
-
-=method unshare
-
-=method version
 
 
 =head1 BUGS AND LIMITATIONS
