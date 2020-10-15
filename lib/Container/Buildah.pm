@@ -669,11 +669,11 @@ The B<Container::Buildah> module has one singleton instance per program.
 It contains configuration data for a container build process.
 The data is similar to what would be in a Dockerfile, except this module makes it scriptable.
 
-=method status ( "string", ... )
+=method $cb->status ( "string", ... )
 
 prints a list of strings to STDERR, if debugging is set to level 1 or higher.
 
-=method debug ( "string", ... )
+=method $cb->debug ( "string", ... )
 
 Prints a list of strings to STDERR, if debugging is at the specified level.
 If the first argument is a HASH reference, it is used for attribute/value parameters.
@@ -684,19 +684,19 @@ The recognized parameters are
 =item "label" for an additional label string to enclose in brackets, such as a container name
 =back
 
-=method get_config ( "path", "to", "name" )
+=method $cb->get_config ( "path", "to", "name" )
 
 =method required_config ( "varname", ... )
 
-=method get_debug ()
+=method $cb->get_debug ()
 
 Return integer value of debug level
 
-=method set_debug( [$level] )
+=method $cb->set_debug( [$level] )
 
 Take an integer value parameter to set the debug level. A level of 0 means debugging is turned off. The default is 0.
 
-=method prog ( $cmdname )
+=method $cb->prog ( $cmdname )
 
 Looks up and returns the path of a command within the directories of /usr/bin, /sbin, /usr/sbin and /bin.
 The list of directories is taken from the Linus Filesystem Standard.
@@ -708,43 +708,102 @@ directories in the path.
 Results are cached for use in future calls to prog().
 Returns undef if the command is not found in those directories.
 
-=method cmd
+=method $cb->cmd ( {opt => $value, ...}, @args )
 
-=method buildah
+Runs an external command within an exception-catching wrapper.
+The first argument is a HASH reference containing key/value pairs for any of the options shown below.
+The second and following arguments are the command-line to run.
 
-=method bud
+=over
 
-=method containers
+=item name
 
-=method from
+a string with the name of the command, for purposes of labelling debugging or error outputs
 
-=method images
+=item capture_output
 
-=method info
+a boolean flag which, if true, causes the output of the command to be captured and returned as a string.
+If this flag is not provided then there is no return value.
 
-=method inspect
+I<Be careful not to run commands which may generate voluminous or infinite output.>
+It will be loaded into memory, within resource limits of the process, to build the string to return from the function.
 
-=method mount
+If capture_output and suppress_output flags are both enabled, capture_output takes precedence.
+If capture_output and suppress_output flags are both disabled, the command uses the standard output inherited from
+the current process as usual.
 
-=method pull
+=item suppress_output
 
-=method push
+a boolean flag which, if true, causes the standard output of the command to be discarded.
 
-=method rename
+If both capture_output and suppress_output flags are enabled, capture_output takes precedence.
+If capture_output and suppress_output flags are both disabled, the command uses the standard output inherited from
+the current process as usual.
 
-=method rm
+=item suppress_error
 
-=method rmi
+a boolean flag which, if true, causes the error output of the command to be discarded.
 
-=method tag
+=item save_retcode
 
-=method umount
+a SCALAR reference where the return code of the command will be saved.
+This is mainly used for unit testing.
 
-=method unshare
+=item nonzero
 
-=method version
+a CODE reference with a callback function to call if the command has a non-zero result.
+This may be used to prevent exceptions when a non-zero result is normal from a command.
+In particular, it had to be used by Command::Buildah to run the tar command, which routinely returns a
+non-zero result for noncritical warning conditions.
 
-=function main ()
+The callback function will be passed the return code from the command.
+
+If this callback is not set, a non-zero result from the command will raise an exception.
+
+=item zero
+
+a CODE reference with a callback function to call if the command has a zero result.
+
+=back
+
+This executes the command directly without spawning a shell process.
+So shell metacharacters are not evaluated.
+
+=method $cb->buildah
+
+=method $cb->bud
+
+=method $cb->containers
+
+=method $cb->from
+
+=method $cb->images
+
+=method $cb->info
+
+=method $cb->inspect
+
+=method $cb->mount
+
+=method $cb->pull
+
+=method $cb->push
+
+=method $cb->rename
+
+=method $cb->rm
+
+=method $cb->rmi
+
+=method $cb->tag
+
+=method $cb->umount
+
+=method $cb->unshare
+
+=method $cb->version
+
+=func main ()
 
 Container::Buildah provides a main() function because it processes the command line arguments.
 It needs to do that because it will re-run itself inside each stage's container namespace with an additional
