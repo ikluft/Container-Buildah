@@ -452,7 +452,7 @@ sub buildah
 	if (ref $in_args[0] eq "HASH") {
 		$opts = shift @in_args;
 	}
-	$opts->{name} = "buildah";
+	$opts->{name} //= "buildah";
 
 	Container::Buildah::disallow_undef(\@in_args);
 	$cb->debug({level => 3}, "buildah: args = ".join(" ", @in_args));
