@@ -769,9 +769,20 @@ a CODE reference with a callback function to call if the command has a zero resu
 This executes the command directly without spawning a shell process.
 So shell metacharacters are not evaluated.
 
-=method $cb->buildah
+=method $cb->buildah ( {opt => $value, ...}, @args )
 
-=method $cb->bud
+The I<buildah> method is the wrapper around the buildah command, used by the wrapper methods for all its subcommands.
+The optional first parameter is a hash of option key and value pairs which are passed to the cmd() method.
+The remaining parameters make up an @args list which is used as command-line parameters to I<buildah>.
+
+This method is usually called by the subcommand wrapper methods and by unit tests.
+However, it can be used to directly launch a buildah command and specify the subcommand parameters yourself.
+
+=method $cb->bud ( {opt => $value, ...}, @args )
+
+The I<bud> method is the wrapper around buildah's bud, or "build-using-dockerfile", subcommand.
+Options and values are the same names as the command-line flags in the L<buildah-bud> manpage.
+The remaining parameters make up an @args list which is used as command-line parameters to I<buildah bud>.
 
 =method $cb->containers
 
