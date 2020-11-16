@@ -769,6 +769,8 @@ a CODE reference with a callback function to call if the command has a zero resu
 This executes the command directly without spawning a shell process.
 So shell metacharacters are not evaluated.
 
+An exception is thrown if any error occurs.
+
 =method $cb->buildah ( {opt => $value, ...}, @args )
 
 The I<buildah> method is the wrapper around the buildah command, used by the wrapper methods for all its subcommands.
@@ -778,13 +780,31 @@ The remaining parameters make up an @args list which is used as command-line par
 This method is usually called by the subcommand wrapper methods and by unit tests.
 However, it can be used to directly launch a buildah command and specify the subcommand parameters yourself.
 
+In addition to command-line options, options used by the I<cmd()> method may be passed in the opt/value pairs.
+Note that "suppress_output" should not be passed to commands where "capture_output" is set.
+
+The return value of the I<cmd> method is returned, which will be undef unless the "capture_output" option is set.
+An exception is thrown if any error occurs.
+
 =method $cb->bud ( {opt => $value, ...}, @args )
 
 The I<bud> method is the wrapper around buildah's bud, or "build-using-dockerfile", subcommand.
 Options and values are the same names as the command-line flags in the L<buildah-bud> manpage.
 The remaining parameters make up an @args list which is used as command-line parameters to I<buildah bud>.
 
+Some options used by the I<cmd> method may be passed in the opt/value pairs:
+"suppress_output", "suppress_error", "nonzero" and "zero".
+
+There is no return value.
+An exception is thrown if any error occurs.
+
 =method $cb->containers
+
+Some options used by the I<cmd()> method may be passed in the opt/value pairs: "suppress_error", "nonzero" and "zero".
+The "capture_output" option is set before I<cmd> is called.
+
+The return value is a string with the captured output of the command.
+An exception is thrown if any error occurs.
 
 =method $cb->from
 
