@@ -862,7 +862,7 @@ sub pull
 	my ($extract, @args) = process_params({name => 'pull',
 		extract => [qw(suppress_error nonzero zero)],
 		arg_flag => [qw(all-tags remove-signatures quiet tls-verify)],
-		arg_str => [qw(authfile blob-cache cert-dir creds override-os override-arch signature-policy)],
+		arg_str => [qw(authfile blob-cache cert-dir creds override-os override-arch policy signature-policy)],
 		arg_array => [qw(decryption-key)],
 		}, $params);
 
