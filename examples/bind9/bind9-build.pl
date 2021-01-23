@@ -36,7 +36,7 @@ Readonly::Scalar my $apk_total => 7;
 Container::Buildah::init_config(
 	basename => "bind9",
 	base_image => 'docker://docker.io/alpine:[% alpine_version %]',
-	required_config => [qw(alpine_version bind_version bind_src_sha512sum)],
+	required_config => [qw(alpine_version aports_git_branch bind_version bind_src_sha512sum)],
 	stages => {
 		build => {
 			from => "[% base_image %]",
@@ -57,7 +57,8 @@ Container::Buildah::init_config(
 		}
 	},
 	bind_src_file => "bind-[% bind_version %].tar.xz",
-	bind_apk_src => "https://git.alpinelinux.org/aports/plain/main/bind/?h=master",
+	aports_git_url => "git://git.alpinelinux.org/aports",
+	bind_apk_src => "main/bind",
 );
 
 # dependency installation function for both stages
@@ -86,7 +87,7 @@ sub stage_build
 
 	$stage->run(
 		# install dependencies
-		[qw(/sbin/apk add --no-cache build-base alpine-sdk wget perl)],
+		[qw(/sbin/apk add --no-cache build-base alpine-sdk git perl)],
 
 		# create build and product directories
 		["mkdir", $apkbuild_dir, $apk_dir],
@@ -94,8 +95,11 @@ sub stage_build
 	$stage->config({workingdir => $apkbuild_dir});
 	$stage->run(
 		# copy BIND9 APK build files from Alpine Git repo
-		[qw(wget --quiet --recursive --level=1 --no-parent --https-only --cut-dirs=4 --no-host-directories
-			--execute=robots=off), Container::Buildah->get_config("bind_apk_src")],
+		#[qw(wget --recursive --level=1 --no-parent --https-only --cut-dirs=4 --no-host-directories
+		#	--execute=robots=off --limit-rate=20k --wait=1), Container::Buildah->get_config("bind_apk_src")],
+		[qw(git clone --no-tags), "--single-branch", "--branch=".Container::Buildah->get_config("aports_git_branch"),
+			Container::Buildah->get_config("aports_git_url"), "aports"],
+		["/bin/sh", "-c", "mv aports/".Container::Buildah->get_config("bind_apk_src")."/* ."],
 
 		# patch APK build instructions for updated version of BIND9
 		[qw(perl -pi -e),

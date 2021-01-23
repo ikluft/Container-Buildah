@@ -1,4 +1,5 @@
 ---
 alpine_version: 3.13.0
+aports_git_branch: 3.13-stable
 bind_version: 9.16.11
 bind_src_sha512sum: 5ed632df7c74f5e6693db9b378450ea3073b8002e9924df1d0465f8b8edb933df3a853d3965a290a0477a67ca2bfa79f679d7e344db08a65462860c58d04dc1b
