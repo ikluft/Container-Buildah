@@ -1,5 +1,5 @@
 ---
-alpine_version: 3.13.5
-aports_git_branch: 3.13-stable
+alpine_version: 3.14.0
+aports_git_branch: 3.14-stable
 bind_version: 9.16.16
 bind_src_sha512sum: 264aa70d0d111ddb2a62c65f57e3eeb7eb93afdebcc523166d236e8f23d61d1e4f91b5a2df8dffa49e6f8e3c7101a2689c38dd6d77ecdedb79e2b163990e6093

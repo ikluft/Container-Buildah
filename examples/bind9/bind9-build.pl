@@ -57,7 +57,7 @@ Container::Buildah::init_config(
 		}
 	},
 	bind_src_file => "bind-[% bind_version %].tar.xz",
-	aports_git_url => "git://git.alpinelinux.org/aports",
+	aports_git_url => "https://github.com/alpinelinux/aports.git",
 	bind_apk_src => "main/bind",
 );
 
@@ -116,7 +116,7 @@ sub stage_build
 		["/bin/sh", "-c", "chown -R named:named ".$apkbuild_dir." ".$apk_dir],
 
 		# build BIND9 APK
-		[qw(su --login -- named /usr/bin/abuild-keygen -a)],
+		[qw(su --login -- named /usr/bin/abuild-keygen -a -n)],
 		[qw(su --login -- named /usr/bin/abuild verify)],
 		[qw(/usr/bin/abuild -F deps)],
 		[qw(su --login -- named /usr/bin/abuild)],
