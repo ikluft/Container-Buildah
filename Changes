@@ -6,6 +6,9 @@ Change log for Container::Buildah
  [BUG FIXES]
 
  [DOCS]
+ - update examples to use Alpine 3.14.0
+ - update BIND9 example: use BIND 9.16.16
+ - update BIND9 example: acquire Alpine aports data from higher capacity GitHub mirror instead of Alpine primary git
 
  [ENHANCEMENTS]
 
@@ -14,6 +17,7 @@ Change log for Container::Buildah
  [MINOR]
 
  [REVISION]
+ - update bud subcommand for new CLI options
 
  [SECURITY]
 
