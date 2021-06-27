@@ -479,18 +479,17 @@ sub bud
 	# process parameters
 	my ($extract, @args) = process_params({name => 'bud',
 		extract => [qw(suppress_output suppress_error nonzero zero)],
-		arg_flag => [qw(compress disable-content-trust http-proxy log-rusage no-cache pull pull-always pull-never
-			quiet rm squash tls-verify)],
+		arg_flag => [qw(compress disable-compression disable-content-trust http-proxy
+			log-rusage no-cache pull pull-always pull-never quiet rm squash stdin tls-verify)],
 		arg_flag_str => [qw(disable-compression force-rm layers)],
 		arg_str => [qw(arch authfile blob-cache cache-from cert-dir cgroup-parent cni-config-dir cni-plugin-path
-			cpu-period cpu-quota cpu-shares cpuset-cpus cpuset-mems creds decryption-key file format from http-proxy
-			iidfile ignorefile ipc isolation jobs logfile loglevel manifest memory
-			memory-swap network os override-arch override-os
-			platform runtime rusage-logfile shm-size sign-by signature-policy tag
-			target timestamp userns userns-uid-map
-			userns-gid-map userns-uid-map-user userns-gid-map-group uts)],
-		arg_array => [qw(add-host annotation build-arg cap-add cap-drop device dns dns-option dns-search
-			label runtime-flag secret security-opt ulimit volume)],
+			cpu-period cpu-quota cpu-shares cpuset-cpus cpuset-mems creds device format
+			from http-proxy iidfile ignorefile ipc isolation jobs logfile loglevel manifest memory
+			memory-swap network os override-arch override-os platform runtime rusage-logfile
+			shm-size sign-by signature-policy tag target timestamp userns userns-uid-map
+			userns-gid-map userns-uid-map-user userns-gid-map-group uts variant)],
+		arg_array => [qw(add-host annotation build-arg cap-add cap-drop decryption-key device
+			dns dns-option dns-search file label runtime-flag secret security-opt tag target ulimit volume)],
 		}, $params);
 
 	# run buildah-tag
