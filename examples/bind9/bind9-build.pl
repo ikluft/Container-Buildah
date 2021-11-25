@@ -137,7 +137,7 @@ sub stage_runtime
 		or die "runtime: failed to open APK directory";
 	my @apks;
 	while (readdir $apk_dh) {
-		if (/\.apk$/ and not /^bind-(dev|doc|openrc)-/) {
+		if (/\.apk$/ and not /^bind-(dev|doc|openrc|dbg)-/) {
 			push @apks, $apk_dir."/".$_;
 		}
 	}
